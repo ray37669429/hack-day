@@ -223,6 +223,44 @@ body.sheet-open #app { padding-bottom: 260px; }
 .asking .mic { width: 64px; height: 64px; }
 .asking .mic svg { width: 34px; height: 34px; }
 
+/* 手機比較矮時自動縮緊（fitScreen 依序加上 t1、t2），讓題目和答案按鈕一個畫面放得下、不用滑。
+   底線不變：內文至少 20px、按鈕至少 56px。 */
+body.t1 #main { gap: 8px; }
+body.t1 .mascot { width: 56px; }
+body.t1 .bubble { padding: 8px 12px; min-height: 0; }
+body.t1 .bubble::before { top: 16px; }
+body.t1 .bubble .t { font-size: 23px; }
+body.t1 .bubble .s { font-size: 16px; margin-top: 2px; }
+body.t1 .why { font-size: 20px; margin: -2px 0 0 68px; }
+body.t1 .chk { padding: 8px 12px; }
+body.t1 .chk dl { gap: 2px; }
+body.t1 .chk dd { font-size: 22px; }
+body.t1 .chk .warn { padding: 4px 8px; margin-bottom: 6px; }
+body.t1 .chk .photo { margin-top: 6px; }
+body.t1 .btn { min-height: 56px; padding: 4px 14px; }
+body.t1 .answers { gap: 8px; }
+body.t1 .dock { padding-top: 6px; }
+body.t1 .hint { display: none; }
+body.t1 .lands { gap: 6px; }
+body.t1 .land { padding: 6px 10px; }
+body.t2 .steps { display: none; }
+body.t2 .who .mascot { display: none; }
+body.t2 .bubble::before { display: none; }
+body.t2 .bubble .s { display: none; }
+body.t2 .why { margin-left: 0; }
+body.t2 #app { padding-top: 8px; }
+.photo-dock { display: none; }
+body.t3 .photo-dock { display: flex; flex: 0 0 34%; }
+body.t3 .chk .photo { display: none; }
+body.t3 #main { gap: 6px; }
+body.t3 .answers { gap: 6px; }
+body.t3 .chk .warn { margin-bottom: 3px; padding: 2px 8px; font-size: 18px; }
+body.t3 .chk .warn svg { width: 18px; height: 18px; }
+body.t3 .bubble .t { font-size: 22px; }
+body.t3 .microw .btn { white-space: nowrap; padding: 4px 10px; gap: 6px; }
+body.t3 .microw .lg { display: none; }
+body.t3 #app { padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before { animation: none !important; transition: none !important; }
   .check path { stroke-dashoffset: 0; }
@@ -676,9 +714,14 @@ function questionHtml() {
   const lit = (v) => (st.flash && st.flash.v === v ? "lit" : "");
   const opts = q.main.map((o) => btn("ans", optIcon(q, o), o.label, lit(o.value), `data-v="${esc(o.value)}"`)).join("");
   const said = st.flash ? `<p class="say center pop">記好了：${esc(st.flash.label)}</p>` : "";
+  // 手機很矮時（t3），「看照片」移到麥克風旁邊，卡片少一排
+  const pu = q.card && q.card.page != null ? photoOf(q.card.page) : "";
+  const pdock = pu && !st.flash ? btn("zoom", "doc", "照片", "soft photo-dock", `data-src="${esc(pu)}" aria-label="看謄本第 ${q.card.page} 張照片"`) : "";
+  const mic = V.canListen && !st.flash
+    ? `<button class="btn pri" data-act="listen" aria-label="按一下，用講的">${ic("mic")}<span class="lg">按一下，</span>用講的</button>` : "";
   return `${top}${lands}${heard}${note}<div class="spacer"></div>
     <div class="dock answers">${said}
-    ${V.canListen && !st.flash ? `${btn("listen", "mic", "按一下，用講的", "pri")}<p class="small center" style="margin:0">不懂可以直接問阿伯</p>` : ""}
+    ${mic || pdock ? `<div class="row microw">${mic}${pdock}</div>` : ""}${mic ? `<p class="small center hint" style="margin:0">不懂可以直接問阿伯</p>` : ""}
     <div class="${q.stack ? "stack" : q.grid ? "grid" : "row"}">${opts}</div>
     ${btn("ans", "help", q.unsure.label, `soft ${lit("unsure")}`, 'data-v="unsure"')}</div>`;
 }
@@ -710,7 +753,23 @@ function render() {
   dev.inert = Boolean(st.zoom);
   if (showDev) dev.innerHTML = devHtml();
   waitDocs();
+  fitScreen();
+  main.querySelectorAll("img").forEach((i) => { if (!i.complete) i.addEventListener("load", fitScreen, { once: true }); });
 }
+
+// 畫面放不下就依序縮緊（只在拍照、開場、題目畫面；完成畫面是清單，可以捲）
+function fitScreen() {
+  const b = document.body;
+  b.classList.remove("t1", "t2", "t3");
+  if (!["question", "photo", "intro", "ready", "retake"].includes(st.screen) || st.sheet) return;
+  const over = () => document.documentElement.scrollHeight > window.innerHeight + 1;
+  if (!over()) return;
+  b.classList.add("t1");
+  if (!over()) return;
+  b.classList.add("t2");
+  if (over()) b.classList.add("t3");
+}
+window.addEventListener("resize", () => fitScreen());
 
 // ───── 底部回饋面板
 function showSheet(o) {
