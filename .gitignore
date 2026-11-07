@@ -29,3 +29,13 @@ desktop.ini
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# ── 個資保護（謄本、身分證、簽名）──
+# 原始未遮蔽檔：只放本機，永遠不進 git
+data/raw/*
+!data/raw/README.md
+# 程式產出的 Excel / Word（可能含個資），要分享請手動遮蔽後放 data/samples/
+data/output/*
+!data/output/README.md
+# Office 開檔時的暫存鎖檔
+~$*

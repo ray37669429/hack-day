@@ -1,31 +1,50 @@
-# Hack Day 專案
+# 農業產銷履歷 AI 黑客松：謄本 → Excel → Word
 
-> 一句話說明要做什麼（待補）
+把一組土地的謄本，經 AI 擷取和人工確認，變成土地清單 Excel，再自動帶入「土地使用同意書」Word。
+
+今天只做 1 組案例：謄本 2 頁 → 清單 3–5 筆 → 同意書 1 份。
+完整背景、欄位對照、驗收方法見 [docs/whitepaper.md](docs/whitepaper.md)。
 
 ## 團隊
 
-| 成員 | 負責 |
+| 角色 | 負責 |
 | --- | --- |
-|  |  |
+| 隊員 A（地政背景） | 謄本欄位辨識、地號與面積核對 |
+| 隊員 B（電腦老師） | 工具與流程、確保現場可重跑 |
+| 隊員 C（使用者） | 需求、計時、範圍決策、驗收 |
+| 老婆（實際使用者） | 確認成果、試用 |
 
-## 快速開始
+## 資料夾
+
+| 位置 | 放什麼 | 進 git？ |
+| --- | --- | --- |
+| `templates/` | 空白 Excel 清單、空白 Word 同意書 | 是 |
+| `data/samples/` | **已遮蔽**的樣本與正確答案 | 是 |
+| `data/raw/` | 原始未遮蔽謄本、真實檔案 | **否** |
+| `data/output/` | 程式產出的 Excel / Word | **否** |
+| `docs/` | 白皮書、待辦、驗收記錄 | 是 |
+
+## 硬規則（違反即退回）
+
+1. **不猜**：看不清、缺頁、衝突一律標「待確認」，不靜默補值。
+2. **個資不進 git**：姓名、身分證、電話、簽名用代碼（農民 A、土地 A）。原始檔只放 `data/raw/`。
+3. 類別、耕作人、實施期間由人輸入，AI 不填。
+4. 所有權人與耕作人分欄，不自動合併。
+5. 未確認的 Word 一律標「草稿」。
+6. 不自動送出正式系統。
+
+## 協作方式
 
 ```bash
-git clone <repo-url>
-cd hack-day
-cp .env.example .env   # 填入自己的金鑰
-# 安裝與啟動指令（待技術選定後補上）
+git clone https://github.com/ray37669429/hack-day.git
 ```
 
-## 協作規則（黑克松版，求快但不互相踩）
+1. `main` 永遠可以跑、可以 demo。
+2. 每人一條分支：`feat/<名字>-<功能>`，例如 `feat/ray-excel-to-word`。
+3. 小步 commit、常 push；合回 `main` 走 Pull Request。
+4. 金鑰只放 `.env`（照 `.env.example`），不要 commit。
 
-1. `main` 永遠保持可以跑、可以 demo。
-2. 每個功能開一條分支：`feat/<名字>-<功能>`，例如 `feat/ray-login`。
-3. 小步 commit、常常 push；每 1–2 小時把 `main` 合進自己的分支一次，避免最後大衝突。
-4. 用 Pull Request 合回 `main`，找一位隊友看一眼就可以合。
-5. 金鑰只放 `.env`，絕對不要 commit。
-6. 分工盡量按資料夾切開，減少同時改同一個檔案。
+## 待辦 / 驗收
 
-## 待辦 / 分工
-
-見 [docs/TODO.md](docs/TODO.md)。
+- 待辦與時間表：[docs/TODO.md](docs/TODO.md)
+- 驗收記錄：[docs/acceptance-log.md](docs/acceptance-log.md)
