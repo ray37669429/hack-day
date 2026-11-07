@@ -33,6 +33,10 @@
 5. 未確認的 Word 一律標「草稿」。
 6. 不自動送出正式系統。
 
+## 參與修改
+
+歡迎任何人改：在 GitHub 網頁點檔案右上角的 ✏️ 就能編輯並送出 Pull Request，詳見 [CONTRIBUTING.md](CONTRIBUTING.md)。每個 PR 會自動跑測試。
+
 ## 開發方式（單人）
 
 ```bash
