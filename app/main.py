@@ -24,6 +24,15 @@ from .models import Case, Channel, Photo, Stage  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 app = FastAPI(title="農地同意書 MVP")
+
+
+@app.middleware("http")
+async def no_stale_frontend(request, call_next):
+    """前端檔案每次都向伺服器確認有沒有新版（沒變只回 304），避免瀏覽器用到舊版的頁面或語音程式。"""
+    resp = await call_next(request)
+    if request.url.path.startswith("/web/"):
+        resp.headers["Cache-Control"] = "no-cache"
+    return resp
 MAX_UPLOAD = 15 * 1024 * 1024
 
 

@@ -300,3 +300,10 @@ def test_retake_page_reextracts(client):
     fv = client.get(f"/api/f/{token}").json()
     assert fv["stage"] == "reviewing" and any(q["id"].startswith("C-") for q in fv["questions"])
     assert client.get(f"/api/f/{token}/photos/2").status_code == 200
+
+
+def test_frontend_not_cached_stale(client):
+    """前端檔案要求瀏覽器每次確認新版，避免展示時跑到舊版頁面。"""
+    for path in ("/web/dev.html", "/web/farmer.html", "/web/voice.js"):
+        r = client.get(path)
+        assert r.status_code == 200 and r.headers["cache-control"] == "no-cache", path
