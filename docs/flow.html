@@ -1,0 +1,340 @@
+<title>謄本到同意書流程</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: vertical swimlane — steps run top to bottom, three lanes (使用者 / 系統 / AI) side by side; a numbered rail on the left carries the order. */
+:root {
+  --bg: #F3F5F2;
+  --surface: #FFFFFF;
+  --fg: #18201B;
+  --muted: #5A665E;
+  --line: #D3DAD4;
+  --user: #B8461A;  --lane-user: #F8ECE5;
+  --sys: #2F5D50;   --lane-sys: #E6EEEA;
+  --ai: #3D4F8C;    --lane-ai: #E9ECF5;
+  --warn: #8A5A00;  --warn-bg: #FFF1D6;
+  --ok: #276B33;    --ok-bg: #E3F2E5;
+  --bad: #A61E45;   --bad-bg: #FBE6EC;
+  --display: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --body: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111613; --surface: #1A211D; --fg: #E5EBE6; --muted: #9BA8A0; --line: #2D3731;
+    --user: #F0905F; --lane-user: #261913;
+    --sys: #79C6AE;  --lane-sys: #14211C;
+    --ai: #A3B3EE;   --lane-ai: #181C2A;
+    --warn: #F2BC55; --warn-bg: #352812;
+    --ok: #82D18F;   --ok-bg: #142C19;
+    --bad: #F2809C;  --bad-bg: #36141F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111613; --surface: #1A211D; --fg: #E5EBE6; --muted: #9BA8A0; --line: #2D3731;
+  --user: #F0905F; --lane-user: #261913;
+  --sys: #79C6AE;  --lane-sys: #14211C;
+  --ai: #A3B3EE;   --lane-ai: #181C2A;
+  --warn: #F2BC55; --warn-bg: #352812;
+  --ok: #82D18F;   --ok-bg: #142C19;
+  --bad: #F2809C;  --bad-bg: #36141F;
+  color-scheme: dark;
+}
+
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.65; }
+.wrap {
+  max-width: 1080px; margin: 0 auto;
+  padding-block: 40px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 40px;
+}
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(28px, 4.2vw, 40px); line-height: 1.25; letter-spacing: .01em; }
+h2 { font-size: 21px; line-height: 1.35; }
+h3 { font-size: 17px; line-height: 1.4; }
+p { margin: 0; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+.lede { color: var(--muted); max-width: 62ch; }
+header { display: grid; gap: 12px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 8px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+/* Tags & pills */
+.tag { font-size: 12px; font-weight: 700; letter-spacing: .06em; display: inline-block; }
+.t-user { color: var(--user); } .t-sys { color: var(--sys); } .t-ai { color: var(--ai); }
+.pill { font-size: 12px; font-weight: 500; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.p-warn { color: var(--warn); background: var(--warn-bg); }
+.p-ok { color: var(--ok); background: var(--ok-bg); }
+.p-bad { color: var(--bad); background: var(--bad-bg); }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+
+/* Swimlane */
+.flow-scroll { overflow-x: auto; }
+.flow { display: grid; grid-template-columns: 48px repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.row { display: contents; }
+.lane-head { padding: 12px 16px; font-weight: 700; font-size: 14px; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; gap: 8px; }
+.lane-head small { font-weight: 400; color: var(--muted); font-size: 12px; }
+.l-user { background: var(--lane-user); }
+.l-sys { background: var(--lane-sys); }
+.l-ai { background: var(--lane-ai); }
+.cell { padding: 10px; min-width: 0; }
+.rail { position: relative; display: flex; justify-content: center; padding-top: 18px; }
+.rail::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; transform: translateX(-1px); background: var(--line); }
+.row.first .rail::before { top: 18px; }
+.row.last .rail::before { bottom: auto; height: 18px; }
+.num { position: relative; z-index: 1; width: 26px; height: 26px; border-radius: 50%; background: var(--surface); border: 2px solid var(--fg); font-family: var(--mono); font-size: 12px; font-weight: 500; display: grid; place-items: center; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 6px; position: relative; min-width: 0; }
+.card p { font-size: 14px; color: var(--muted); }
+.card .out { font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding-top: 4px; border-top: 1px dashed var(--line); }
+.card .out b { font-weight: 500; color: var(--muted); font-size: 12px; }
+.card.gate { border: 2px solid var(--user); }
+.card.decision { border: 2px dashed var(--sys); }
+.stamp { position: absolute; top: 8px; right: 10px; width: 46px; height: 46px; border: 2px solid var(--user); border-radius: 50%; color: var(--user); font-family: var(--display); font-weight: 700; font-size: 12px; line-height: 1.15; display: grid; place-items: center; text-align: center; transform: rotate(-12deg); opacity: .85; }
+.card.gate h3, .card.gate .tag { padding-right: 52px; }
+.branch { display: grid; gap: 6px; font-size: 13.5px; }
+.branch div { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.loop { font-size: 13px; color: var(--bad); display: flex; gap: 6px; align-items: baseline; }
+
+/* Lower diagrams */
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.panel > p { color: var(--muted); font-size: 14px; }
+svg text { font-family: var(--body); }
+.sm-svg { width: 100%; height: auto; display: block; }
+.n-start { fill: var(--surface); stroke: var(--muted); stroke-dasharray: 4 3; }
+.n-warn { fill: var(--warn-bg); stroke: var(--warn); }
+.n-ok { fill: var(--ok-bg); stroke: var(--ok); }
+.n-bad { fill: var(--bad-bg); stroke: var(--bad); }
+.tx { fill: var(--fg); font-size: 14px; font-weight: 500; }
+.tx-warn { fill: var(--warn); } .tx-ok { fill: var(--ok); } .tx-bad { fill: var(--bad); }
+.edge { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.edge-bad { stroke: var(--bad); stroke-dasharray: 5 4; }
+.elabel { fill: var(--muted); font-size: 12px; }
+.arrowhead { fill: var(--muted); }
+.arrowhead-bad { fill: var(--bad); }
+
+.df { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.2fr) auto minmax(0, 1fr); align-items: center; gap: 10px; }
+.df .box { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 14px; text-align: center; background: var(--bg); }
+.df .core { border: 2px solid var(--sys); background: var(--lane-sys); font-weight: 700; }
+.df .core small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.df .outs { display: grid; gap: 6px; }
+.df .arrow { color: var(--muted); font-size: 18px; text-align: center; }
+
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 24px; padding: 0; margin: 0; list-style: none; font-size: 14px; }
+.rules li { display: flex; gap: 8px; align-items: baseline; }
+.rules li::before { content: "■"; color: var(--user); font-size: 9px; }
+footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+
+@media (max-width: 760px) {
+  .flow { grid-template-columns: 40px minmax(0, 1fr); }
+  .lane-head { display: none; }
+  .cell:empty { display: none; }
+  .cell { background: none; padding-left: 4px; }
+  .rail { padding-top: 22px; }
+  .pair { grid-template-columns: minmax(0, 1fr); }
+  .df { grid-template-columns: minmax(0, 1fr); }
+  .df .arrow { transform: rotate(90deg); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .card { transition: box-shadow .15s ease; }
+  .card:hover { box-shadow: 0 2px 10px rgb(0 0 0 / .06); }
+}
+</style>
+
+<main class="wrap">
+  <header>
+    <div class="eyebrow">hack-day · 系統流程</div>
+    <h1>謄本到同意書流程</h1>
+    <p class="lede">一組土地的謄本，經 AI 擷取、人工核對，最後產出土地清單 Excel 與土地使用同意書 Word。AI 只負責提議，所有值都要人確認後才會進正式文件。</p>
+    <div class="legend" aria-label="圖例">
+      <span><i class="sw" style="background:var(--user)"></i>使用者（人工）</span>
+      <span><i class="sw" style="background:var(--sys)"></i>系統（Ontology 核心）</span>
+      <span><i class="sw" style="background:var(--ai)"></i>AI</span>
+      <span><span class="pill p-warn">待確認</span><span class="pill p-ok">已確認</span><span class="pill p-bad">退回補件</span></span>
+    </div>
+  </header>
+
+  <section aria-labelledby="h-flow" style="display:grid;gap:14px">
+    <h2 id="h-flow">主流程</h2>
+    <div class="flow-scroll">
+      <div class="flow" role="list">
+        <div class="row">
+          <div class="lane-head" aria-hidden="true"></div>
+          <div class="lane-head l-user"><span class="t-user">使用者</span><small>確認、補填、驗收</small></div>
+          <div class="lane-head l-sys"><span class="t-sys">系統</span><small>規則、比對、輸出</small></div>
+          <div class="lane-head l-ai"><span class="t-ai">AI</span><small>只讀與提議</small></div>
+        </div>
+
+        <div class="row first" role="listitem">
+          <div class="rail"><span class="num">1</span></div>
+          <div class="cell l-user"><article class="card">
+            <span class="tag t-user">使用者</span>
+            <h3>放入謄本</h3>
+            <p>拍照或 PDF，放進 <code>data/raw/</code>。原始檔不進 git。</p>
+            <div class="out"><b>產物</b>謄本 2 頁</div>
+          </article></div>
+          <div class="cell l-sys"></div>
+          <div class="cell l-ai"></div>
+        </div>
+
+        <div class="row" role="listitem">
+          <div class="rail"><span class="num">2</span></div>
+          <div class="cell l-user"></div>
+          <div class="cell l-sys"></div>
+          <div class="cell l-ai"><article class="card">
+            <span class="tag t-ai">AI</span>
+            <h3>擷取欄位</h3>
+            <p>讀坐落與地號、面積、所有權人、統一編號、權利範圍。每個值附來源頁碼與原文；看不清就留空。</p>
+            <div class="out"><b>產物</b>擷取主張 <span class="pill p-warn">全部待確認</span></div>
+          </article></div>
+        </div>
+
+        <div class="row" role="listitem">
+          <div class="rail"><span class="num">3</span></div>
+          <div class="cell l-user"></div>
+          <div class="cell l-sys"><article class="card">
+            <span class="tag t-sys">系統</span>
+            <h3>比對與標記</h3>
+            <p>和現有清單比對，標出差異、缺漏、重複地號。地號一律當文字，保留前導零，如 <span class="mono">0123-0004</span>。</p>
+            <div class="out"><b>產物</b>核對表</div>
+          </article></div>
+          <div class="cell l-ai"></div>
+        </div>
+
+        <div class="row" role="listitem">
+          <div class="rail"><span class="num">4</span></div>
+          <div class="cell l-user"><article class="card gate">
+            <span class="stamp" aria-hidden="true">人工<br>確認</span>
+            <span class="tag t-user">使用者 · 人工關卡</span>
+            <h3>核對</h3>
+            <p>只看「待確認」和「有差異」的欄位。逐項確認、修正或退回；謄本和清單衝突時由人選邊，AI 不選。</p>
+            <div class="out"><b>結果</b><span class="pill p-ok">已確認</span><span class="pill p-bad">退回補件</span></div>
+            <div class="loop">↩ 退回補件：重拍或補件，回到步驟 1</div>
+          </article></div>
+          <div class="cell l-sys"></div>
+          <div class="cell l-ai"></div>
+        </div>
+
+        <div class="row" role="listitem">
+          <div class="rail"><span class="num">5</span></div>
+          <div class="cell l-user"><article class="card">
+            <span class="tag t-user">使用者</span>
+            <h3>補人工欄位</h3>
+            <p>謄本沒有的資料由人填：類別（分耕／輪耕／託耕／承租）、耕作人及 ID、實施期間。AI 不填、不預設。</p>
+          </article></div>
+          <div class="cell l-sys"></div>
+          <div class="cell l-ai"></div>
+        </div>
+
+        <div class="row" role="listitem">
+          <div class="rail"><span class="num">6</span></div>
+          <div class="cell l-user"></div>
+          <div class="cell l-sys"><article class="card decision">
+            <span class="tag t-sys">系統 · 送出檢查</span>
+            <h3>可以出正式版嗎？</h3>
+            <p>關鍵欄位（地號、面積、所有權人、ID、持分）全部已確認，人工欄位也填好了？</p>
+            <div class="branch">
+              <div><span class="pill p-ok">是</span>產出正式版</div>
+              <div><span class="pill p-warn">否</span>只能產出標「草稿」的版本，並列出未完成欄位，回到步驟 4</div>
+            </div>
+          </article></div>
+          <div class="cell l-ai"></div>
+        </div>
+
+        <div class="row" role="listitem">
+          <div class="rail"><span class="num">7</span></div>
+          <div class="cell l-user"></div>
+          <div class="cell l-sys"><article class="card">
+            <span class="tag t-sys">系統</span>
+            <h3>產出文件</h3>
+            <p>從同一份資料同時產生兩份文件，內容一定一致。</p>
+            <div class="out"><b>產物</b>土地清單 Excel（含面積合計）</div>
+            <div class="out"><b>產物</b>土地使用同意書 Word（每頁 7 列，簽名蓋章與日期留白）</div>
+          </article></div>
+          <div class="cell l-ai"></div>
+        </div>
+
+        <div class="row last" role="listitem">
+          <div class="rail"><span class="num">8</span></div>
+          <div class="cell l-user"><article class="card">
+            <span class="tag t-user">使用者</span>
+            <h3>試用與驗收</h3>
+            <p>實際使用者自己跑完一次，隊員不代操作。記錄全流程分鐘數、AI 初稿錯誤數、最終錯誤數。</p>
+            <div class="out"><b>寫入</b><code>docs/acceptance-log.md</code></div>
+          </article></div>
+          <div class="cell l-sys"></div>
+          <div class="cell l-ai"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pair">
+    <div class="panel" aria-labelledby="h-sm">
+      <h2 id="h-sm">每個欄位的狀態</h2>
+      <p>AI 寫入的不是「土地的面積」，而是「AI 認為第 1 頁的面積是多少」。人確認後，值才算數。</p>
+      <div style="overflow-x:auto">
+        <svg class="sm-svg" viewBox="0 0 460 210" role="img" aria-label="狀態圖：AI 擷取後為待確認；人工確認變已確認，人工退回變退回補件；補件後重新擷取回到待確認">
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead" d="M0 0 L10 5 L0 10 z"/></marker>
+            <marker id="ahb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead-bad" d="M0 0 L10 5 L0 10 z"/></marker>
+          </defs>
+          <rect class="n-start" x="6" y="80" width="88" height="40" rx="8"/>
+          <text class="tx" x="50" y="105" text-anchor="middle">AI 擷取</text>
+          <rect class="n-warn" x="140" y="80" width="96" height="40" rx="20" stroke-width="1.5"/>
+          <text class="tx tx-warn" x="188" y="105" text-anchor="middle">待確認</text>
+          <rect class="n-ok" x="340" y="16" width="100" height="40" rx="20" stroke-width="1.5"/>
+          <text class="tx tx-ok" x="390" y="41" text-anchor="middle">已確認</text>
+          <rect class="n-bad" x="340" y="144" width="100" height="40" rx="20" stroke-width="1.5"/>
+          <text class="tx tx-bad" x="390" y="169" text-anchor="middle">退回補件</text>
+          <path class="edge" d="M94 100 L138 100" marker-end="url(#ah)"/>
+          <path class="edge" d="M236 92 L338 40" marker-end="url(#ah)"/>
+          <text class="elabel" x="300" y="56" text-anchor="middle">人工確認</text>
+          <path class="edge" d="M236 108 L338 160" marker-end="url(#ah)"/>
+          <text class="elabel" x="262" y="150" text-anchor="middle">人工退回</text>
+          <path class="edge edge-bad" d="M340 176 C 260 205, 200 190, 188 122" marker-end="url(#ahb)"/>
+          <text class="elabel" x="210" y="203" text-anchor="middle">補件後重新擷取</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="panel" aria-labelledby="h-df">
+      <h2 id="h-df">資料只存一份</h2>
+      <p>Excel 和 Word 都是從同一份資料產生的「視圖」，不再互相抄寫。要改資料，只能透過核對這類動作。</p>
+      <div class="df">
+        <div class="box">謄本<br><small class="mono">data/raw/</small></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="box core">Ontology<small>唯一事實來源</small></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="outs">
+          <div class="box">土地清單 Excel</div>
+          <div class="box">同意書 Word</div>
+          <div class="box">核對畫面</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-rules">
+    <h2 id="h-rules">流程中的硬規則</h2>
+    <ul class="rules">
+      <li>看不清、缺頁、衝突一律標待確認，不補值</li>
+      <li>AI 只能建立待確認的主張</li>
+      <li>原值與單位分欄保留，換算不覆蓋</li>
+      <li>面積換算、權利面積公式確認前不計算</li>
+      <li>所有權人與耕作人分欄，不自動合併</li>
+      <li>未全部確認的 Word 一律標「草稿」</li>
+      <li>不自動送出正式系統</li>
+      <li>個資只在本機，共用樣本須遮蔽</li>
+    </ul>
+  </section>
+
+  <footer>依據張永錫的白皮書與 <code>docs/ontology-design.md</code> 討論稿繪製，流程尚未定案。</footer>
+</main>
