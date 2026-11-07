@@ -27,9 +27,9 @@ body { font-family: "Huninn", "jf-openhuninn", "Microsoft JhengHei", "PingFang T
 body.sheet-open #app { padding-bottom: 260px; }
 #main { flex: 1; display: flex; flex-direction: column; gap: 14px; }
 
-/* 整體步驟：拍照 → 等一下 → 回答 → 簽名 */
+/* 整體步驟：拍照 → 等一下 → 核對 → 回答 → 下載 */
 .steps { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; }
-.steps li { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 16px; color: var(--fg2);
+.steps li { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 16px; color: var(--fg2); white-space: nowrap;
   position: relative; }
 .steps li + li::before { content: ""; position: absolute; top: 14px; right: calc(50% + 18px); width: calc(100% - 32px);
   height: 3px; background: var(--track); border-radius: 2px; }
@@ -40,7 +40,7 @@ body.sheet-open #app { padding-bottom: 260px; }
 .steps .done .n { background: var(--g); color: #fff; }
 .steps .done { color: var(--gt); }
 .steps .now .n { background: var(--gl); color: var(--gt); box-shadow: 0 0 0 3px var(--g); }
-.steps .now { color: var(--gt); font-size: 17px; }
+.steps .now { color: var(--gt); }
 
 .top { display: flex; align-items: center; gap: 12px; min-height: 56px; }
 .bar { flex: 1; height: 18px; border-radius: 9px; background: var(--track); overflow: hidden; }
@@ -60,6 +60,8 @@ body.sheet-open #app { padding-bottom: 260px; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .grid .btn { flex-direction: column; min-height: 112px; gap: 4px; }
 .grid .btn svg { width: 42px; height: 42px; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.stack .btn { min-height: 76px; font-size: 25px; }
 .dock { position: sticky; bottom: 0; padding: 8px 0 4px; background: var(--bg); }
 
 .who { display: flex; gap: 12px; align-items: flex-start; }
@@ -95,6 +97,15 @@ body.sheet-open #app { padding-bottom: 260px; }
 .thumbbtn:active { border-bottom-width: 2px; }
 .thumbbtn img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; background: #F3EEE3; }
 
+/* 核對題的謄本卡：標籤小、內容大；看不清的用琥珀色＋問號，不用紅色 */
+.chk { display: flex; gap: 12px; align-items: flex-start; }
+.chk dl { flex: 1; min-width: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.chk dt { font-size: 18px; color: var(--fg2); }
+.chk dd { margin: 0; font-size: 28px; line-height: 1.3; overflow-wrap: anywhere; }
+.chk dd.unclear { display: inline-flex; align-items: center; gap: 6px; color: var(--wt); background: var(--wb); border-radius: 10px;
+  padding: 2px 10px; font-size: 24px; }
+.chk dd.unclear svg { width: 26px; height: 26px; flex: none; }
+
 .thumbs { display: flex; gap: 10px; flex-wrap: wrap; }
 .thumbs figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 16px; color: var(--gt); }
 .thumbs img { width: 76px; height: 100px; object-fit: cover; border-radius: 10px; border: 2px solid var(--g); background: #F3EEE3; }
@@ -107,6 +118,11 @@ body.sheet-open #app { padding-bottom: 260px; }
 .tips svg { width: 34px; height: 34px; color: var(--g); }
 
 .note { background: var(--wb); color: var(--wt); border-radius: 14px; padding: 12px 14px; }
+.draft { display: inline-block; font-size: 20px; color: var(--wt); background: var(--wb); border: 2px solid #E3C48F; border-radius: 999px;
+  padding: 0 14px; }
+.todo li svg { color: var(--wt); }
+.small { font-size: 20px; color: var(--fg2); margin: 8px 0 0; }
+.dl { display: flex; flex-direction: column; gap: 12px; }
 .heard { font-size: 18px; color: var(--fg2); }
 .center { text-align: center; }
 .h1 { font-size: 30px; font-weight: 400; margin: 0; line-height: 1.3; }
@@ -121,6 +137,7 @@ body.sheet-open #app { padding-bottom: 260px; }
 .mic svg { width: 56px; height: 56px; }
 @keyframes breath { 0%, 100% { box-shadow: 0 0 0 0 rgba(74, 154, 46, .45); } 50% { box-shadow: 0 0 0 22px rgba(74, 154, 46, 0); } }
 .rb { font-size: 56px; line-height: 1.2; }
+.rb.long { font-size: 34px; }
 
 .view { position: relative; aspect-ratio: 3 / 4; max-height: 34vh; width: 100%; border: 3px dashed var(--line); border-radius: 18px;
   background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
@@ -189,6 +206,22 @@ body.sheet-open #app { padding-bottom: 260px; }
 #dev b { font-weight: 400; width: 100%; }
 #dev select, #dev button { font: inherit; font-size: 15px; min-height: 40px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--fg); }
 
+/* 服務台：隨時可以按「問問題」，阿伯回答 */
+#askrow { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+#askrow[hidden] { display: none; }
+#askrow .btn { width: auto; min-height: 56px; font-size: 20px; padding: 6px 18px; }
+#desk { position: fixed; inset: 0; z-index: 9; background: var(--bg); overflow-y: auto;
+  padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); }
+#desk[hidden] { display: none; }
+#desk .in { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+#desk .h1 { font-size: 26px; }
+.log { display: flex; flex-direction: column; gap: 8px; }
+.log p { margin: 0; padding: 8px 12px; max-width: 85%; font-size: 19px; }
+.log .me { align-self: flex-end; background: var(--gl); color: var(--gt); border-radius: 16px 16px 4px 16px; }
+.log .bot { align-self: flex-start; background: #fff; border: 2px solid var(--line); border-radius: 16px 16px 16px 4px; color: var(--fg2); }
+.chips { display: flex; flex-direction: column; gap: 10px; }
+.chips .btn { font-size: 20px; justify-content: flex-start; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before { animation: none !important; transition: none !important; }
   .check path { stroke-dashoffset: 0; }
@@ -197,7 +230,8 @@ body.sheet-open #app { padding-bottom: 260px; }
 </style>
 </head>
 <body>
-<div id="app"><main id="main" aria-live="polite"></main><aside id="dev" hidden></aside></div>
+<div id="app"><div id="askrow" hidden><button class="btn" data-act="deskOpen"></button></div><main id="main" aria-live="polite"></main><aside id="dev" hidden></aside></div>
+<div id="desk" role="dialog" aria-modal="true" aria-label="問問題" hidden></div>
 <div id="sheet" role="status"><div class="in"></div></div>
 <div id="zoom" role="dialog" aria-modal="true" aria-label="謄本照片" hidden></div>
 <input type="file" id="cam" accept="image/*" capture="environment" hidden>
@@ -238,8 +272,11 @@ const ICON = {
   corners: '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>',
   chat: '<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
-  phone: '<path d="M5 3.5h3.5l1.5 5-2.2 1.4a11 11 0 0 0 6.3 6.3l1.4-2.2 5 1.5V19a1.5 1.5 0 0 1-1.5 1.5A16.5 16.5 0 0 1 3.5 5 1.5 1.5 0 0 1 5 3.5z"/>',
-  person: '<circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/>',
+  download: '<path d="M12 3.5v11.5M7 10.5l5 5 5-5M4.5 19.5h15"/>',
+  calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  search: '<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/>',
+  print: '<path d="M7 9V3.5h10V9M7 17H4.5V10a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1v7H17"/><path d="M7 14h10v6.5H7z"/>',
+  pen: '<path d="M4 20l1-4.5L15.5 5a2.1 2.1 0 0 1 3 3L8 18.5 4 20z"/><path d="M13.5 7l3 3"/>',
   ok: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/>',
 };
 const ic = (n) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n] || ICON.ok}</svg>`;
@@ -274,7 +311,7 @@ const LOCAL = {
     options: ["承租", "託耕", "輪耕", "分耕", "unsure"] },
 };
 const ICON_FOR = { yes: "check", no: "x", self: "self", other: "other", 承租: "lease", 託耕: "tractor", 輪耕: "rotate", 分耕: "split" };
-const optIcon = (o) => ICON_FOR[o.value] || (V.isNegative(o.label) ? "x" : "check");
+const optIcon = (q, o) => (q.kind === "years" ? "calendar" : ICON_FOR[o.value] || (V.isNegative(o.label) ? "x" : "check"));
 
 function normQ(sq) {
   const loc = LOCAL[sq.id] || {};
@@ -289,19 +326,34 @@ function normQ(sq) {
   }
   if (!options.some((o) => o.value === "unsure")) options.push({ value: "unsure", label: V.LABEL.unsure }); // 每題都要有「我不確定」
   const main = options.filter((o) => o.value !== "unsure");
+  const kind = sq.kind || loc.kind || "";
+  const years = kind === "years";
   return {
     id: String(sq.id),
-    kind: sq.kind || loc.kind || "",
+    kind,
     text: sq.text || loc.text || "",
     say: loc.say || sq.say || sq.text || "",
-    hint: loc.hint || (main.length ? `說「${main.map((o) => o.label).join("」或「")}」` : ""),
+    hint: loc.hint || (years && main.every((o) => /^\d+$/.test(o.value)) ? `說「${main.map((o) => `${o.value} 年`).join("」「")}」`
+      : main.length ? `說「${main.map((o) => o.label).join("」或「")}」` : ""),
     why: sq.why || "",
     legal: Boolean(sq.legal),
+    card: normCard(sq.card),
     options, main,
     unsure: options.find((o) => o.value === "unsure"),
-    grid: main.length > 2,
+    stack: years, // 選年數：三顆大按鈕上下排
+    grid: main.length > 2 && !years,
   };
 }
+// 核對題的謄本卡：{ rows: [{label, value}], photo_page }；格式不對就當沒有
+function normCard(c) {
+  if (!c || typeof c !== "object" || !Array.isArray(c.rows)) return null;
+  const rows = c.rows.filter((r) => r && typeof r === "object").map((r) => ({ label: String(r.label ?? ""), value: String(r.value ?? "") }));
+  const pg = Number(c.photo_page);
+  return rows.length ? { rows, page: c.photo_page != null && Number.isFinite(pg) ? pg : null } : null;
+}
+// 步驟列：核對謄本（q1 的土地清單、核對題）算「核對」，其他題目算「回答」
+const isCheckQ = (q) => Boolean(q) && (q.kind === "same" || q.id.startsWith("C-") || q.id === "q1");
+const stepOfQ = (q) => (isCheckQ(q) ? 2 : 3);
 function questions() {
   const s = st.view?.questions;
   const list = Array.isArray(s) && s.length ? s.filter((q) => q && q.id) : Object.keys(LOCAL).map((id) => ({ id }));
@@ -314,11 +366,12 @@ const SAY = {
   buttons: "我沒聽清楚，請按下面的按鈕。",
   again: "好，請再回答一次。",
   received: "收到了。接下來不用做事，好了會請你回答幾個問題。",
-  done: "謝謝你，回答完了。同意書準備好以後，協助者會跟你約時間，帶印章來簽名。",
+  doneOk: "謝謝你，回答完了。同意書做好了，請按下載。",
+  doneDraft: "謝謝你，回答完了。同意書是草稿，還有幾件事要處理。",
   next: (n) => `很好。請拍第 ${n} 張。`,
   shoot: (n) => `請拍第 ${n} 張土地謄本。`,
   rb: (label) => `你講，${label}，對嗎？`,
-  intro: (n) => `你好，我們要幫你準備土地使用同意書。要拍土地謄本 ${n} 張，再回答幾個問題，大約 5 分鐘。`,
+  intro: (n) => `你好，我們要幫你準備土地使用同意書。要拍土地謄本 ${n} 張，核對謄本上的資料，回答幾個問題，再選要簽幾年，大約 10 分鐘。`,
 };
 
 // ───── 狀態
@@ -327,6 +380,7 @@ const st = {
   thumbs: {}, zoom: null,
   q: 0, mode: "wait", pending: null, fails: 0, note: "", heard: "",
   sheet: null, dir: "fwd", busy: false,
+  docWait: 0, // 同意書還沒出來：0 還沒等、1 等一下再問一次、2 問過了
 };
 
 async function getView() {
@@ -339,6 +393,8 @@ async function getView() {
   v.lands = Array.isArray(v.lands) ? v.lands : [];
   v.photos = Array.isArray(v.photos) ? v.photos : [];
   v.answers = v.answers && typeof v.answers === "object" ? v.answers : {};
+  v.documents = Array.isArray(v.documents) ? v.documents : [];
+  v.todo = Array.isArray(v.todo) ? v.todo : [];
   return v;
 }
 
@@ -398,23 +454,12 @@ function go(screen, dir = "fwd") {
 const bar = (pct) => `<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><i style="width:${Math.max(4, pct)}%"></i></div>`;
 const bubble = (t, s, tag = "") => `<button class="bubble" data-act="hear">${tag ? `<span class="tag">${esc(tag)}</span>` : ""}<span class="t">${esc(t)}</span><span class="s">${ic("volume")}${esc(s)}</span></button>`;
 const btn = (act, icon, label, cls = "", extra = "") => `<button class="btn ${cls}" data-act="${act}" ${extra}>${icon ? ic(icon) : ""}${esc(label)}</button>`;
-const telOf = (p) => String(p ?? "").replace(/[^\d+]/g, "");
 
-const STEPS = ["拍照", "等一下", "回答", "簽名"];
+const STEPS = ["拍照", "等一下", "核對", "回答", "下載"];
 const steps = (cur) => `<ol class="steps" aria-label="步驟">${STEPS.map((s, i) => {
   const cls = i < cur ? "done" : i === cur ? "now" : "";
   return `<li class="${cls}"${i === cur ? ' aria-current="step"' : ""}><span class="n">${i < cur ? ic("check") : i + 1}</span>${s}</li>`;
 }).join("")}</ol>`;
-
-function helperCard(withCall) {
-  const h = st.view?.helper;
-  if (!h || !(h.name || h.phone)) return "";
-  const tel = telOf(h.phone);
-  return `<div class="card"><h2>幫你的人</h2><ul class="list">
-    ${h.name ? `<li>${ic("person")}<span>${esc(h.name)}</span></li>` : ""}
-    ${tel && !withCall ? `<li>${ic("phone")}<span>${esc(h.phone)}</span></li>` : ""}</ul></div>
-    ${tel && withCall ? `<a class="btn pri" href="tel:${esc(tel)}">${ic("phone")}${esc(`打電話給${h.name || "協助者"}`)}</a>` : ""}`;
-}
 
 function thumbsHtml() {
   const pages = [...st.view.pages_done].sort((a, b) => a - b);
@@ -433,7 +478,7 @@ function viewHtml() {
       return `<div class="spacer"></div><div class="mid">${mascot("talk", "big-mascot")}<p class="say">打開中…</p></div><div class="spacer"></div>`;
     case "badlink":
       return `<div class="spacer"></div><div class="mid">${mascot("calm", "big-mascot")}<p class="h1">這個連結打不開</p>
-        <p class="say">不用擔心。請找幫你處理的人，再要一次連結。</p></div><div class="spacer"></div>`;
+        <p class="say">不用擔心。請找給你連結的人，再要一次。</p></div><div class="spacer"></div>`;
     case "offline":
       return `<div class="spacer"></div><div class="mid">${mascot("calm", "big-mascot")}<p class="h1">網路好像斷了</p>
         <p class="say">不用擔心，剛剛做的都還在。<br>請等一下，再按下面的按鈕。</p></div><div class="spacer"></div>${btn("reload", "rotate", "再試一次", "pri")}`;
@@ -444,9 +489,10 @@ function viewHtml() {
         <p class="h1 sm">我們要幫你準備<br>土地使用同意書</p>
         <div class="card"><h2>你要做的事</h2><ul class="list">
           <li>${ic("camera")}<span>拍土地謄本 ${n} 張</span></li>
+          <li>${ic("search")}<span>核對謄本上的資料</span></li>
           <li>${ic("chat")}<span>回答幾個問題</span></li>
-          <li>${ic("clock")}<span>大約 5 分鐘</span></li></ul></div>
-        ${helperCard(false)}
+          <li>${ic("calendar")}<span>選要簽幾年</span></li>
+          <li>${ic("clock")}<span>大約 10 分鐘</span></li></ul></div>
         <div class="spacer"></div><div class="dock">${btn("begin", "right", "開始", "pri")}</div>`;
     }
     case "photo": return photoHtml();
@@ -459,31 +505,91 @@ function viewHtml() {
     case "ready": {
       const qs = questions();
       const left = qs.length - st.q;
-      return `${steps(2)}<div class="spacer"></div><div class="mid">${mascot("talk", "big-mascot")}
+      return `${steps(stepOfQ(qs[st.q]))}<div class="spacer"></div><div class="mid">${mascot("talk", "big-mascot")}
         <p class="h1">${left === qs.length ? `有 ${left} 個問題要問你` : `還有 ${left} 個問題`}</p>
         <p class="say">可以用講的，也可以用按的。</p></div><div class="spacer"></div>${btn("start", "right", "開始回答", "pri")}`;
     }
     case "question": return questionHtml();
-    case "done": {
-      const qs = questions();
-      const rows = qs.filter((q) => q.id in v.answers)
-        .map((q) => `<div><dt>${esc(q.text)}</dt><dd>${esc(v.answers[q.id])}</dd></div>`).join("");
-      return `${steps(3)}<div class="mid">
-        <svg class="check" width="80" height="80" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="44" fill="#4A9A2E"/>
-        <path d="M28 50l14 14 28-30" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <p class="h1">謝謝你，回答完了</p></div>
-        ${rows ? `<div class="card"><h2>你的回答</h2><dl class="sum">${rows}</dl></div>` : ""}
-        <div class="card"><h2>接下來</h2><ul class="list">
-          <li><span class="num">1</span><span>協助者核對你的謄本</span></li>
-          <li><span class="num">2</span><span>跟你約時間，帶印章來簽名</span></li></ul></div>
-        ${helperCard(true)}`;
-    }
+    case "done": return doneHtml();
     case "human":
       return `<div class="spacer"></div><div class="mid">${mascot("calm", "big-mascot")}
-        <p class="h1">協助者會跟你聯絡</p><p class="say">不用擔心，你不用再做事，等電話就好。</p></div>
-        ${helperCard(true)}<div class="spacer"></div>`;
+        <p class="h1">系統處理不了這份謄本</p><p class="say">不用擔心。請重新拍一次，或找家人幫忙。</p></div>
+        <div class="spacer"></div>`;
   }
   return "";
+}
+
+// ───── 做好了：下載同意書
+const docsOf = (v) => (v?.documents || []).filter((d) => d && typeof d === "object")
+  .map((d) => ({ name: String(d.name ?? ""), url: safeUrl(d.url), draft: Boolean(d.draft) })).filter((d) => d.url);
+const todoOf = (v) => (v?.todo || []).map((t) => String(t ?? "").trim()).filter(Boolean);
+
+function answersCard() {
+  const v = st.view;
+  const rows = questions().filter((q) => q.id in v.answers)
+    .map((q) => `<div><dt>${esc(q.text)}</dt><dd>${esc(v.answers[q.id])}</dd></div>`).join("");
+  return rows ? `<div class="card"><h2>你的回答</h2><dl class="sum">${rows}</dl></div>` : "";
+}
+const todoCard = (todo) => (todo.length ? `<div class="card todo"><h2>還要處理的事</h2><ul class="list">
+  ${todo.map((t) => `<li>${ic("info")}<span>${esc(t)}</span></li>`).join("")}</ul></div>` : "");
+
+function doneHtml() {
+  const v = st.view, docs = docsOf(v), todo = todoOf(v);
+  if (!docs.length) {
+    if (st.docWait < 2) {
+      return `${steps(4)}<div class="mid">${mascot("happy", "big-mascot")}<p class="h1">謝謝你，回答完了</p>
+        <p class="say">正在做同意書…</p><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></div>${answersCard()}`;
+    }
+    return `${steps(4)}<div class="mid">${mascot("calm", "big-mascot")}<p class="h1">同意書還沒做好</p>
+      <p class="say">不用擔心，你的回答都記好了。<br>請等一下，再按下面的按鈕。</p></div>
+      ${todoCard(todo)}${answersCard()}<div class="spacer"></div><div class="dock">${btn("reload", "rotate", "再看一次", "pri")}</div>`;
+  }
+  const draft = docs.some((d) => d.draft);
+  const head = draft
+    ? `<div class="mid">${mascot("happy", "big-mascot")}<p class="h1">同意書是草稿</p><span class="draft">草稿</span>
+        <p class="say">還有幾件事要處理，處理好才是正式的。</p></div>`
+    : `<div class="mid"><svg class="check" width="80" height="80" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="44" fill="#4A9A2E"/>
+        <path d="M28 50l14 14 28-30" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <p class="h1">同意書做好了</p></div>`;
+  const dl = docs.map((d, i) => `<a class="btn pri" href="${esc(d.url)}" download="${esc(d.name)}">${ic("download")}${docs.length > 1 ? `下載第 ${i + 1} 份` : "下載同意書"}</a>`).join("");
+  return `${steps(4)}${head}<div class="dl">${dl}</div>
+    ${draft ? todoCard(todo) : ""}
+    <div class="card"><h2>接下來</h2><ul class="list">
+      <li><span class="num">1</span>${ic("print")}<span>印出來</span></li>
+      <li><span class="num">2</span>${ic("pen")}<span>甲方、乙方簽名蓋章</span></li>
+      <li><span class="num">3</span>${ic("calendar")}<span>填上日期</span></li></ul>
+      <p class="small">乙方（耕作人）的名字和身分證號，簽的時候用手寫。</p></div>
+    ${reportCard()}${answersCard()}`;
+}
+
+// 土地分析報告：重點摘要＋下載（內容由後端固定範本產生，見 app/agents/report.py）
+function reportCard() {
+  const r = st.view?.report;
+  const url = r && safeUrl(r.url);
+  if (!url) return "";
+  const n = Number(r.lands) || 0;
+  const rows = [
+    `${ic("doc")}<span>${n} 筆地${r.total_ha ? `，合計 ${esc(r.total_ha)} 公頃` : ""}</span>`,
+    `${ic("check")}<span>已核對 ${Number(r.checked) || 0} 筆，共 ${n} 筆</span>`,
+    Array.isArray(r.issues) && r.issues.length
+      ? `${ic("info")}<span>要留意：${r.issues.map(esc).join("、")}</span>`
+      : `${ic("info")}<span>沒有發現要特別留意的事</span>`,
+  ];
+  if (Number(r.todo)) rows.push(`${ic("help")}<span>還有 ${Number(r.todo)} 件事要處理</span>`);
+  return `<div class="card"><h2>分析報告</h2><ul class="list">${rows.map((x) => `<li>${x}</li>`).join("")}</ul>
+    <p class="small">報告只供參考，不是法律意見。</p>
+    <a class="btn" href="${esc(url)}" download="${esc(r.name || "土地分析報告.docx")}">${ic("download")}下載分析報告</a></div>`;
+}
+
+// 同意書還沒出來：等 2 秒再問一次後端，只問一次
+function waitDocs() {
+  if (st.screen !== "done" || st.docWait !== 0 || docsOf(st.view).length) return;
+  st.docWait = 1;
+  setTimeout(async () => {
+    try { const v = await getView(); if (v) st.view = v; } catch { /* 網路不穩：照樣顯示「還沒做好」 */ }
+    st.docWait = 2;
+    if (st.screen === "done") route();
+  }, 2000);
 }
 
 function photoHtml() {
@@ -519,16 +625,28 @@ function landHtml(l) {
     ${u ? `<button class="thumbbtn" data-act="zoom" data-src="${esc(u)}" aria-label="看謄本第 ${esc(l.page)} 頁的照片"><img src="${esc(u)}" alt="">看照片</button>` : ""}</div>`;
 }
 
+function checkCardHtml(q) {
+  const c = q.card;
+  if (!c) return "";
+  const rows = c.rows.map((r) => {
+    const unclear = r.value.includes("看不清");
+    return `<div><dt>${esc(r.label)}</dt><dd${unclear ? ' class="unclear"' : ""}>${unclear ? ic("help") : ""}${esc(r.value)}</dd></div>`;
+  }).join("");
+  const u = c.page != null ? photoOf(c.page) : "";
+  return `<div class="card chk"><dl>${rows}</dl>
+    ${u ? `<button class="thumbbtn" data-act="zoom" data-src="${esc(u)}" aria-label="看謄本第 ${esc(c.page)} 頁的照片"><img src="${esc(u)}" alt="">看照片</button>` : ""}</div>`;
+}
+
 function questionHtml() {
   const qs = questions(), q = qs[st.q], v = st.view;
   if (!q) return "";
   const done = st.q + (st.sheet ? 1 : 0);
   const listening = st.mode === "listen" || st.mode === "rbListen";
   const face = st.sheet ? "happy" : listening ? "listen" : "talk";
-  const top = `${steps(2)}<div class="top">${btn("back", "left", "", "back", 'aria-label="回上一步"')}${bar((done / qs.length) * 100)}</div>
+  const top = `${steps(stepOfQ(q))}<div class="top">${btn("back", "left", "", "back", 'aria-label="回上一步"')}${bar((done / qs.length) * 100)}</div>
     <div class="who">${mascot(face)}${bubble(q.text, `第 ${st.q + 1} 題，共 ${qs.length} 題・點這裡再聽一次`, q.legal ? "確認一下" : "")}</div>
     ${q.why ? `<p class="why">${ic("info")}<span>${esc(q.why)}</span></p>` : ""}`;
-  const lands = q.id === "q1" && v.lands.length ? `<div class="lands">${v.lands.map(landHtml).join("")}</div>` : "";
+  const lands = q.id === "q1" && v.lands.length ? `<div class="lands">${v.lands.map(landHtml).join("")}</div>` : checkCardHtml(q);
   const note = st.note ? `<div class="note">${esc(st.note)}</div>` : "";
   const heard = st.heard ? `<div class="heard">聽到：${esc(st.heard)}</div>` : "";
 
@@ -538,13 +656,14 @@ function questionHtml() {
       <div class="spacer"></div>${btn("stopListen", "stop", "不講了，改用按的", "soft")}`;
   }
   if (st.mode === "readback") {
-    return `${top}<div class="mid"><p class="say">你講的是</p><div class="rb pop">${esc(labelOf(q, st.pending.v))}</div><p class="h1">對嗎？</p></div>
+    const said = labelOf(q, st.pending.v);
+    return `${top}<div class="mid"><p class="say">你講的是</p><div class="rb pop${said.length > 4 ? " long" : ""}">${esc(said)}</div><p class="h1">對嗎？</p></div>
       ${note}<div class="spacer"></div>${btn("rbYes", "check", "對", "pri")}${btn("rbNo", "left", "不對，再講一次")}`;
   }
-  const opts = q.main.map((o) => btn("ans", optIcon(o), o.label, "", `data-v="${esc(o.value)}"`)).join("");
+  const opts = q.main.map((o) => btn("ans", optIcon(q, o), o.label, "", `data-v="${esc(o.value)}"`)).join("");
   return `${top}${lands}${heard}${note}
     ${V.canListen ? btn("listen", "mic", "按一下，用講的", "pri") : ""}
-    <div class="${q.grid ? "grid" : "row"}">${opts}</div>
+    <div class="${q.stack ? "stack" : q.grid ? "grid" : "row"}">${opts}</div>
     ${btn("ans", "help", q.unsure.label, "soft", 'data-v="unsure"')}`;
 }
 
@@ -568,12 +687,17 @@ function render() {
     main.classList.add(st.dir === "back" ? "bk" : "fwd");
     lastKey = key;
   }
-  main.inert = Boolean(st.sheet || st.zoom);
+  main.inert = Boolean(st.sheet || st.zoom || desk.open);
+  const ask = $("#askrow");
+  ask.hidden = ["loading", "badlink"].includes(st.screen) || Boolean(st.zoom);
+  ask.firstElementChild.innerHTML = `${ic("mic")}問問題`;
+  ask.inert = Boolean(desk.open);
   const dev = $("#dev");
   const showDev = IS_LOCAL && st.screen === "photo";
   dev.hidden = !showDev;
   dev.inert = Boolean(st.zoom);
   if (showDev) dev.innerHTML = devHtml();
+  waitDocs();
 }
 
 // ───── 底部回饋面板
@@ -770,6 +894,9 @@ async function submit(value, channel, transcript = "") {
     const body = await r.json();
     if (body.answers && typeof body.answers === "object") st.view.answers = body.answers;
     if (Array.isArray(body.questions) && body.questions.length) st.view.questions = body.questions; // 題目可能變多或變少
+    if (Array.isArray(body.documents)) st.view.documents = body.documents;
+    if (Array.isArray(body.todo)) st.view.todo = body.todo;
+    if ("report" in body) st.view.report = body.report;
   } catch {
     st.busy = false;
     st.note = "沒有送出去，請再按一次。";
@@ -783,9 +910,104 @@ async function submit(value, channel, transcript = "") {
   showSheet({ tone: "ok", title: `記好了：${labelOf(q, value)}`, act: "next", label: st.q < qs.length - 1 ? "繼續" : "完成", redo: true });
 }
 
+// ───── 服務台：按「問問題」用講的發問，阿伯從固定答案庫回答（app/agents/faq.py）
+const desk = { open: false, log: [], mode: "wait", note: "", sugg: null, busy: false };
+const DESK_HELLO = "有什麼不懂的，都可以問我。按綠色的按鈕，用講的問。";
+const DESK_SUGG = {
+  photo: ["這是要做什麼？", "怎麼拍比較清楚？", "我的資料安全嗎？"],
+  wait: ["還要多久？", "這是要做什麼？", "我的資料安全嗎？"],
+  answer: ["現在要做什麼？", "我不知道怎麼答", "按錯了怎麼辦？"],
+  done: ["怎麼簽名？", "什麼是草稿？", "這是要做什麼？"],
+};
+const deskPhase = () => (["intro", "photo"].includes(st.screen) ? "photo"
+  : ["received", "human"].includes(st.screen) ? "wait" : st.screen === "done" ? "done" : "answer");
+
+function deskHtml() {
+  const listening = desk.mode === "listen";
+  const bots = desk.log.filter((m) => m.who === "bot");
+  const last = bots.length ? bots[bots.length - 1].text : DESK_HELLO;
+  const face = listening ? "listen" : desk.busy ? "calm" : "talk";
+  const earlier = desk.log.slice(0, -1).slice(-4)
+    .map((m) => `<p class="${m.who === "me" ? "me" : "bot"}">${m.who === "me" ? "你問：" : "阿伯："}${esc(m.text)}</p>`).join("");
+  const sugg = (desk.sugg || DESK_SUGG[deskPhase()]).map((s) => btn("deskChip", "help", s, "", `data-q="${esc(s)}"`)).join("");
+  const action = listening
+    ? `<div class="mid"><div class="mic">${ic("mic")}</div><p class="h1">我在聽，請說你的問題</p></div>${btn("deskStop", "stop", "不講了", "soft")}`
+    : btn("deskListen", "mic", desk.busy ? "阿伯在想…" : "按一下，說你的問題", "pri", desk.busy ? "disabled" : "");
+  return `<div class="in">
+    <div class="who">${mascot(face)}<button class="bubble" data-act="deskRepeat"><span class="t" style="font-size:22px">${esc(last)}</span>
+      <span class="s">${ic("volume")}點這裡再聽一次</span></button></div>
+    ${earlier ? `<div class="log" aria-label="剛剛問的">${earlier}</div>` : ""}
+    ${desk.note ? `<div class="note">${esc(desk.note)}</div>` : ""}
+    ${action}
+    <p class="say" style="font-size:19px">也可以直接按下面的問題：</p>
+    <div class="chips">${sugg}</div>
+    ${btn("deskClose", "left", "回去繼續", "soft")}
+  </div>`;
+}
+function renderDesk() {
+  const d = $("#desk");
+  d.hidden = !desk.open;
+  d.innerHTML = desk.open ? deskHtml() : "";
+}
+function deskOpen() {
+  V.cancelListen(); V.stop();
+  if (st.mode === "listen" || st.mode === "rbListen") { st.mode = st.pending ? "readback" : "wait"; }
+  desk.open = true; desk.note = ""; desk.mode = "wait"; desk.sugg = null;
+  renderDesk(); render();
+  $("#desk .btn.pri")?.focus({ preventScroll: true });
+  V.speak(desk.log.length ? "請說你的問題。" : DESK_HELLO);
+}
+function deskClose() {
+  V.cancelListen(); V.stop();
+  desk.open = false; desk.mode = "wait";
+  renderDesk(); render();
+}
+async function deskAsk(text, channel) {
+  if (desk.busy) return;
+  desk.busy = true; desk.note = "";
+  desk.log.push({ who: "me", text });
+  renderDesk();
+  let r = null;
+  try {
+    const res = await fetch(`${API}/ask`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, channel }) });
+    if (res.ok) r = await res.json();
+  } catch { /* 下面處理 */ }
+  const answer = typeof r?.answer === "string" && r.answer ? r.answer : "現在沒辦法回答，請等一下再問一次。";
+  desk.log.push({ who: "bot", text: answer });
+  if (Array.isArray(r?.suggestions)) desk.sugg = r.suggestions.filter((s) => typeof s === "string").slice(0, 4);
+  desk.busy = false;
+  renderDesk();
+  V.speak(typeof r?.say === "string" && r.say ? r.say : answer);
+}
+async function deskListen() {
+  desk.mode = "listen"; desk.note = "";
+  renderDesk();
+  const r = await V.listen();
+  if (desk.mode !== "listen") return; // 已經按「不講了」或關掉
+  desk.mode = "wait";
+  if (r.error) {
+    desk.note = r.error === "denied" ? "麥克風沒有打開。請按下面的問題。" : "這支手機不能用講的。請按下面的問題。";
+    return renderDesk();
+  }
+  const text = (r.alts || [])[0] || "";
+  if (!text.trim()) {
+    desk.note = "我沒聽清楚，可以再說一次，或按下面的問題。";
+    renderDesk();
+    return V.speak(desk.note);
+  }
+  deskAsk(text.trim(), "voice");
+}
+
 // ───── 按鈕
 const ACT = {
-  reload: () => { go("loading"); load(); },
+  deskOpen: () => deskOpen(),
+  deskClose: () => deskClose(),
+  deskListen: () => deskListen(),
+  deskStop: () => { desk.mode = "wait"; V.cancelListen(); renderDesk(); },
+  deskChip: (el) => { V.cancelListen(); desk.mode = "wait"; deskAsk(el.dataset.q, "button"); },
+  deskRepeat: () => { const b = desk.log.filter((m) => m.who === "bot"); V.speak(b.length ? b[b.length - 1].text : DESK_HELLO); },
+  reload: () => { st.docWait = 0; go("loading"); load(); },
   begin: () => { st.page = nextPage(); go("photo"); V.speak(SAY.shoot(st.page)); },
   toIntro: () => go("intro", "back"),
   shoot: () => $("#cam").click(),
@@ -809,7 +1031,12 @@ const ACT = {
     hideSheet();
     const qs = questions();
     if (st.q < qs.length - 1) { st.q += 1; st.mode = "wait"; go("question"); sayQuestion(); }
-    else { go("done"); V.speak(SAY.done); }
+    else {
+      st.docWait = 0;
+      go("done");
+      const docs = docsOf(st.view);
+      if (docs.length) V.speak(docs.some((d) => d.draft) ? SAY.doneDraft : SAY.doneOk);
+    }
   },
   redo: () => { hideSheet(); render(); sayQuestion(); },
   back: () => {
@@ -824,7 +1051,10 @@ document.addEventListener("click", (e) => {
   if (el && !el.disabled && ACT[el.dataset.act]) ACT[el.dataset.act](el);
 });
 document.addEventListener("change", (e) => { if (e.target.id === "devCase") devCase = e.target.value; });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape" && st.zoom) closeZoom(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (desk.open) deskClose(); else if (st.zoom) closeZoom();
+});
 window.addEventListener("hashchange", () => location.reload());
 
 V.loadAudio();

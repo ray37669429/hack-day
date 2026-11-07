@@ -1,12 +1,13 @@
-"""FastAPI 入口。啟動：uvicorn app.main:app --reload --port 8000
+"""FastAPI 入口。啟動：uvicorn app.main:app --reload --port 8001
 
-API 說明見 docs/backend-design.md 第 5 節。協助者端 MVP 只在本機使用，對外開放前必須加登入。
+API 說明見 docs/backend-design.md 第 5 節。協助者角色已取消：農民用專屬連結自己確認全部內容。
+/api/cases 只給本機管理與測試用（建立案例、看完整資料），對外開放前必須加登入或拿掉。
 """
 from __future__ import annotations
 
-import os
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, RedirectResponse
@@ -18,8 +19,8 @@ from .config import load_env
 load_env()
 
 from . import actions, pipeline, store  # noqa: E402
-from .agents import document, intake, legal, triage
-from .models import ANSWER_LABEL, QUESTION_UI, QUESTIONS, Case, Channel, Manual, Photo, Stage
+from .agents import document, faq, intake, legal, report, triage  # noqa: E402
+from .models import Case, Channel, Photo, Stage  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 app = FastAPI(title="農地同意書 MVP")
@@ -37,7 +38,7 @@ def _farmer(token: str) -> Case:
     try:
         return store.find_by_token(token)
     except KeyError:
-        raise HTTPException(404, "連結無效，請向協助者索取新的連結")
+        raise HTTPException(404, "這個連結不能用")
 
 
 def _act(fn, *args, **kwargs):
@@ -47,8 +48,19 @@ def _act(fn, *args, **kwargs):
         raise HTTPException(400, str(e))
 
 
+def _doc_path(case: Case, name: str) -> Path:
+    """本案的同意書檔案；名稱必須在 case.documents 裡，且不能跳出資料夾。"""
+    if name not in case.documents or Path(name).name != name:
+        raise HTTPException(404, "找不到這份文件")
+    doc_dir = (store.case_dir(case.id) / "documents").resolve()
+    path = (doc_dir / name).resolve()
+    if path.parent != doc_dir or not path.is_file():
+        raise HTTPException(404, "找不到這份文件")
+    return path
+
+
 def legal_view(case: Case) -> list[dict]:
-    """法律注意事項（依分數高到低），附選題理由：為什麼問農民、為什麼沒問。"""
+    """法律注意事項（依分數高到低），附選題理由與備註。農民回答了就算處理過。"""
     out = []
     sel = legal.selection(case)
     for i in legal.issues(case):
@@ -57,41 +69,42 @@ def legal_view(case: Case) -> list[dict]:
         s = sel[i.id]
         fu = s["followup"]
         fa = case.answers.get(fu.id) if fu else None
-        note = case.legal_notes.get(i.id)
         out.append({"id": i.id, "title": i.title, "detail": i.detail, "reference": i.reference,
                     "score": i.score, "score_reason": i.score_reason,
                     "asked": s["asked"], "selection": s["reason"],
                     "question_id": qid, "answer_label": i.question.label(a.value) if a else None,
                     "followup": {"question_id": fu.id, "text": fu.text,
                                  "answer_label": fu.label(fa.value) if fa else None} if fu else None,
-                    "resolved": note is not None, "note": note.note if note else ""})
+                    "handled": not s["asked"] or a is not None})
     return out
 
 
-def helper_view(case: Case) -> dict:
-    return {**case.model_dump(mode="json"), "missing": actions.missing(case), "legal": legal_view(case)}
+def admin_view(case: Case) -> dict:
+    """本機管理與除錯用：整個案例 + 不能出正式版的原因 + 法律注意事項 + 農民待辦。"""
+    return {**case.model_dump(mode="json"), "missing": actions.missing(case), "legal": legal_view(case),
+            "todo": actions.todo(case)}
 
 
-# ───── 農民端資料（只放本人看得懂、且不含他人姓名、證號、地址的內容）
+# ───── 農民端資料（照片是農民自己拍的：可顯示姓名、遮蔽後的證號、持分；不放地址）
 
 def farmer_questions(case: Case) -> list[dict]:
-    """農民現在要回答的題目：q1、q2、q3，再接目前有效的法律注意事項題目。"""
-    out = []
-    for q, (text, _) in QUESTIONS.items():
-        ui = QUESTION_UI[q]
-        out.append({"id": q, "text": text, "say": ui["say"], "kind": ui["kind"],
-                    "options": [{"value": v, "label": ANSWER_LABEL[v]} for v in ui["options"]],
-                    "why": "", "legal": False})
-    for lq in legal.active_questions(case):
-        out.append({"id": lq.id, "text": lq.text, "say": lq.say, "kind": lq.kind,
-                    "options": [{"value": v, "label": label} for v, label in lq.options],
-                    "why": lq.why, "legal": True})
-    return out
+    return triage.questions(case)
 
 
 def farmer_answers(case: Case) -> dict[str, str]:
     current = {q["id"] for q in farmer_questions(case)}  # 追問被取消後，舊答案不再顯示
-    return {q: actions.answer_label(q, a.value) for q, a in case.answers.items() if q in current}
+    return {q: actions.answer_label(case, q, a.value) for q, a in case.answers.items() if q in current}
+
+
+def farmer_documents(case: Case) -> list[dict]:
+    return [{"name": n, "url": f"/api/f/{case.farmer_token}/documents/{quote(n)}", "draft": "草稿" in n}
+            for n in case.documents]
+
+
+def farmer_report(case: Case) -> dict | None:
+    """土地分析報告的摘要與下載網址；還沒產生時是 None。"""
+    s = report.summary(case)
+    return {**s, "url": f"/api/f/{case.farmer_token}/report"} if s else None
 
 
 def latest_photos(case: Case) -> dict[int, Photo]:
@@ -103,7 +116,7 @@ def latest_photos(case: Case) -> dict[int, Photo]:
     return latest
 
 
-# ───── 協助者
+# ───── 本機管理（建立案例、除錯）
 
 class NewCase(BaseModel):
     sample_id: str | None = None
@@ -114,82 +127,22 @@ class NewCase(BaseModel):
 def create_case(body: NewCase):
     if body.sample_id and body.sample_id not in {"C01", "C02", "C03"}:
         raise HTTPException(400, "假謄本只有 C01、C02、C03")
-    case = _act(actions.create_case, "helper", body.sample_id, body.pages_expected)
+    case = _act(actions.create_case, "system", body.sample_id, body.pages_expected)
     return {"id": case.id, "farmer_token": case.farmer_token, "farmer_url": f"/api/f/{case.farmer_token}"}
 
 
 @app.get("/api/cases/{case_id}")
 def get_case(case_id: str):
-    return helper_view(_case(case_id))
-
-
-class Confirm(BaseModel):
-    value: str | None = None
-
-
-@app.post("/api/cases/{case_id}/claims/{claim_id}/confirm")
-def confirm(case_id: str, claim_id: str, body: Confirm):
-    case = _case(case_id)
-    _act(actions.confirm_claim, case, "helper", claim_id, body.value)
-    store.save(case)
-    return helper_view(case)
-
-
-class Reject(BaseModel):
-    reason: str = ""
-
-
-@app.post("/api/cases/{case_id}/claims/{claim_id}/reject")
-def reject(case_id: str, claim_id: str, body: Reject):
-    case = _case(case_id)
-    _act(actions.reject_claim, case, "helper", claim_id, body.reason)
-    store.save(case)
-    return helper_view(case)
-
-
-@app.put("/api/cases/{case_id}/manual")
-def put_manual(case_id: str, body: Manual):
-    case = _case(case_id)
-    _act(actions.set_manual, case, "helper", body)
-    store.save(case)
-    return helper_view(case)
-
-
-class Resolve(BaseModel):
-    note: str = ""
-
-
-@app.post("/api/cases/{case_id}/legal/{issue_id}/resolve")
-def resolve_legal(case_id: str, issue_id: str, body: Resolve):
-    case = _case(case_id)
-    if issue_id not in {i.id for i in legal.issues(case)}:
-        raise HTTPException(404, "目前沒有這個法律注意事項")
-    _act(actions.resolve_legal, case, "helper", issue_id, body.note)
-    store.save(case)
-    return helper_view(case)
-
-
-@app.post("/api/cases/{case_id}/documents")
-def make_documents(case_id: str):
-    case = _case(case_id)
-    if not case.claims:
-        raise HTTPException(400, "還沒有擷取結果，不能產生同意書")
-    files = document.run(case)
-    if case.stage == Stage.reviewing:
-        actions.set_stage(case, "agent:document", Stage.documented)
-    store.save(case)
-    return {"files": files, "draft": bool(actions.missing(case)), "missing": actions.missing(case)}
+    return admin_view(_case(case_id))
 
 
 @app.get("/api/cases/{case_id}/documents/{name}")
 def get_document(case_id: str, name: str):
     case = _case(case_id)
-    if name not in case.documents:
-        raise HTTPException(404, "找不到這份文件")
-    return FileResponse(store.case_dir(case.id) / "documents" / name, filename=name)
+    return FileResponse(_doc_path(case, name), filename=name)
 
 
-# ───── 農民（用專屬連結，不回傳身分證號與他人資料）
+# ───── 農民（用專屬連結）
 
 @app.get("/api/f/{token}")
 def farmer_view(token: str):
@@ -208,9 +161,11 @@ def farmer_view(token: str):
         "pages_done": sorted(latest),
         "lands": lands,
         "photos": [{"page": n, "url": f"/api/f/{token}/photos/{n}"} for n in sorted(latest)],
-        "helper": {"name": os.getenv("HELPER_NAME") or "協助者", "phone": os.getenv("HELPER_PHONE", "")},
         "questions": farmer_questions(case),
         "answers": farmer_answers(case),
+        "documents": farmer_documents(case),
+        "todo": actions.todo(case),
+        "report": farmer_report(case),
     }
 
 
@@ -266,9 +221,47 @@ class Answer(BaseModel):
 def post_answer(token: str, body: Answer):
     case = _farmer(token)
     _act(actions.answer, case, "farmer", body.question, body.value, body.channel, body.transcript)
-    triage.after_answer(case, body.question, body.value)
+    # 題目都答完就自動產生同意書；之後改答案也重新產生，避免留下過期的檔案
+    if case.claims and (not triage.unanswered(case) or case.documents):
+        document.run(case)
+        report.run(case)  # 文件 agent 會清空資料夾，報告排在後面
+        if case.stage == Stage.reviewing:
+            actions.set_stage(case, "agent:document", Stage.documented)
     store.save(case)
-    return {"ok": True, "answers": farmer_answers(case), "questions": farmer_questions(case)}
+    return {"ok": True, "answers": farmer_answers(case), "questions": farmer_questions(case),
+            "documents": farmer_documents(case), "todo": actions.todo(case), "report": farmer_report(case)}
+
+
+@app.get("/api/f/{token}/documents/{name}")
+def farmer_document(token: str, name: str):
+    case = _farmer(token)
+    return FileResponse(_doc_path(case, name), filename=name)
+
+
+@app.get("/api/f/{token}/report")
+def farmer_report_file(token: str):
+    case = _farmer(token)
+    path = store.case_dir(case.id) / "documents" / report.FILE
+    if not path.is_file():
+        raise HTTPException(404, "報告還沒做好")
+    return FileResponse(path, filename=report.FILE)
+
+
+class Ask(BaseModel):
+    text: str = ""
+    channel: Channel = Channel.button
+
+
+@app.post("/api/f/{token}/ask")
+def ask(token: str, body: Ask):
+    """服務台：阿伯從固定答案庫回答（app/agents/faq.py）。不保存錄音，只記問題文字與挑中的答案。"""
+    case = _farmer(token)
+    text = body.text.strip()[:200]
+    nxt = triage.unanswered(case) if case.stage in (Stage.reviewing, Stage.documented) else []
+    r = faq.reply(case, text, nxt[0]["text"] if nxt else None)
+    actions.log(case, "agent:faq", "回答農民的問題", f"{'語音' if body.channel == Channel.voice else '按鈕'}：「{text[:60]}」→ {r['id']}")
+    store.save(case)
+    return r
 
 
 # ───── 靜態檔：前端與假謄本（data/output 不對外）

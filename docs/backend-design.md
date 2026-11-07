@@ -6,7 +6,7 @@
 
 1. **資料只存一份**：每個案例一個 JSON（`data/output/cases/<id>/case.json`），Excel、Word、畫面都是從它產生。
 2. **只有「動作」能改資料**（`app/actions.py`）。每個動作檢查「誰在做」和「能不能做」，並寫一筆操作紀錄。
-3. **agent 不能確認任何欄位**。擷取 agent 只能建立「待確認」；只有協助者能確認、退回。這由動作層擋下，不靠 agent 自律。
+3. **agent 不能確認任何欄位**。擷取 agent 只能建立「待確認」；**只有農民本人**（actor `farmer`）能用「一樣／不一樣」確認或退回。這由動作層擋下，不靠 agent 自律。協助者角色已於 2026-11-07 取消。
 4. **固定流程，不是自由發揮**：照片收齊 → 擷取 → 核對 → 分派，依序自動觸發。
 5. **擷取的輸出格式 = 假謄本答案檔格式**（`answer.json`），所以可以用答案檔當「完美擷取」測試整條流程，再換成真的 AI。
 
@@ -16,7 +16,6 @@
 flowchart LR
   subgraph web["前端（web/）"]
     F["農民手機頁"]
-    H["協助者核對頁"]
   end
   subgraph api["FastAPI（app/main.py）"]
     R["API 路由"]
@@ -55,42 +54,43 @@ flowchart LR
 | `Ownership` | `oid`、`pid`、`source` | 一筆所有權（一筆地可以有多筆） |
 | `FieldClaim` | `id`、`target`、`field`、`ai_value`、`value`、`status`、`note`、`flags`、`source` | **擷取主張**。`status`：待確認／已確認／退回 |
 | `FarmerAnswer` | `question`、`value`、`channel`、`transcript` | 農民回答。`channel`：按鈕／語音；語音要存辨識原文 |
-| `Manual` | `area_ha`、`right_area_ha`、`period`、`cultivator` | 協助者人工填的欄位（換算規則未確認前不自動算） |
-| `Task` | `to`、`text`、`done` | 給協助者的待辦 |
+| `Task` | `to`、`text`、`done` | 只在流程失敗時記錄（保留給舊資料）；農民的待辦由 `actions.todo()` 即時算出 |
 | `Event` | `at`、`actor`、`action`、`detail` | 操作紀錄 |
 
 `FieldClaim.field` 的固定值：`location`、`lot_no`、`area_m2`、`owner`、`id_no`、`share`。
 
 ## 4. 誰能做什麼（動作層強制）
 
-| 動作 | 農民 | 協助者 | agent |
-| --- | --- | --- | --- |
-| 上傳照片 | ✅ | ✅ | — |
-| 建立擷取主張（待確認） | — | — | ✅ 只有 extract |
-| 加註規則警示 | — | — | ✅ 只有 check |
-| 建立任務 | — | ✅ | ✅ triage |
-| 回答 3 題 | ✅ | — | — |
-| 確認／修正／退回欄位 | — | ✅ | ❌ **一律拒絕** |
-| 填人工欄位 | — | ✅ | — |
-| 產生同意書 | — | ✅ | ✅ document（未全部確認時只能出草稿） |
+| 動作 | 農民 | agent／系統 |
+| --- | --- | --- |
+| 上傳照片 | ✅ | — |
+| 建立擷取主張（待確認） | — | ✅ 只有 extract |
+| 加註規則警示 | — | ✅ 只有 check |
+| 回答題目（含核對題、法律題、期間） | ✅ | — |
+| 確認／退回欄位（核對題答「一樣／不一樣」） | ✅ | ❌ **一律拒絕** |
+| 產生同意書、分析報告 | — | ✅ document、report（題目答完自動產生；未全部確認時只能是草稿） |
+| 寫操作紀錄 | — | ✅ 各 agent（含服務台 faq） |
+
+本筆面積、權利面積由 `app/agents/area.py` 用**已確認**的面積與持分計算（÷ 10000、× 持分，小數 4 位四捨五入）；實施期間來自農民選的年數；乙方耕作人留白手寫。
 
 ## 5. API
 
-農民用專屬連結（`farmer_token`）存取，看不到身分證號與其他人的資料；協助者端 MVP 只在本機使用。
+農民用專屬連結（`farmer_token`）存取。`/api/cases` 只給本機管理與測試用，對外開放前必須拿掉或加登入。
 
-| 方法 | 路徑 | 誰用 | 做什麼 |
-| --- | --- | --- | --- |
-| `POST` | `/api/cases` | 協助者 | 建立案例，回傳案例編號與農民連結。可帶 `sample_id`（C01–C03）使用假謄本 |
-| `GET` | `/api/cases/{id}` | 協助者 | 案例全部資料＋「還不能出正式版的原因」 |
-| `GET` | `/api/f/{token}` | 農民 | 農民畫面需要的資料：目前步驟、要拍幾張、土地清單（只有段名與地號）、已答題目 |
-| `POST` | `/api/f/{token}/photos` | 農民 | 上傳一張照片，立即回傳品質檢查結果；收齊後自動觸發擷取 |
-| `POST` | `/api/f/{token}/answers` | 農民 | 回答一題：`question`、`value`、`channel`、`transcript` |
-| `POST` | `/api/cases/{id}/claims/{claim_id}/confirm` | 協助者 | 確認（可帶修正後的值） |
-| `POST` | `/api/cases/{id}/claims/{claim_id}/reject` | 協助者 | 退回並建立補拍任務 |
-| `PUT` | `/api/cases/{id}/manual` | 協助者 | 填公頃面積、權利面積、實施期間、耕作人 |
-| `POST` | `/api/cases/{id}/documents` | 協助者 | 產生同意書 Word（每位所有權人一份；未完成時是草稿） |
-| `GET` | `/api/cases/{id}/documents/{name}` | 協助者 | 下載 Word |
-| `GET` | `/` | 全部 | 前端靜態檔（`web/`），測試台在 `/web/prototype.html` |
+| 方法 | 路徑 | 做什麼 |
+| --- | --- | --- |
+| `POST` | `/api/cases` | （本機管理）建立案例，回傳農民連結。可帶 `sample_id`（C01–C03） |
+| `GET` | `/api/cases/{id}` | （本機管理）案例全部資料、`missing`、`legal`、`todo` |
+| `GET` | `/api/f/{token}` | 農民畫面資料：`stage`、`lands`、`photos`、`questions`（依序：q1 → 核對題 → q2、q3 → 法律題 → 期間）、`answers`、`documents`、`todo`、`report` |
+| `POST` | `/api/f/{token}/photos` | 上傳一張照片，立即回傳品質檢查與逐項 `checks`；收齊後自動擷取 |
+| `GET` | `/api/f/{token}/photos/{page}` | 本案該頁最後一張合格照片 |
+| `POST` | `/api/f/{token}/answers` | 回答一題；題目都答完就自動產生同意書與分析報告 |
+| `GET` | `/api/f/{token}/documents/{name}` | 下載同意書 Word |
+| `GET` | `/api/f/{token}/report` | 下載土地分析報告 Word |
+| `POST` | `/api/f/{token}/ask` | 服務台：`{text, channel}` → 阿伯從固定答案庫回答 `{id, answer, say, suggestions}` |
+| `GET` | `/` | 前端靜態檔（`web/`） |
+
+題目格式：`{id, text, say, kind, options[{value,label}], why, legal, card}`；`kind` 有 `yesno`、`who`、`cat`、`have`、`same`（核對）、`years`（期間）。
 
 ## 6. 背景 agent
 
@@ -99,8 +99,11 @@ flowchart LR
 | ① 收件 | `agents/intake.py` | 上傳照片時（同步） | 亮度 ≥ 90、清晰度 ≥ 250 才通過；門檻與測試台相同，依真實照片校正（清楚約 520–550、模糊約 150） |
 | ② 擷取 | `agents/extract.py` | 照片收齊（背景） | 兩種引擎：`oracle` 讀假謄本答案檔；`vision` 透過 LLM harness 呼叫 OpenAI（見 [llm-harness.md](llm-harness.md)），輸出格式與答案檔相同 |
 | ③ 核對 | `agents/check.py` | 擷取完成 | 段名比對內政部官方清單（`app/refdata/`）、地號格式、同地號不同段、持分加總、看不清的欄位 |
-| ④ 分派 | `agents/triage.py` | 核對完成 | 謄本欄位全部給協助者；3 題給農民；農民答「不是」「不確定」時加任務 |
-| ⑤ 文件 | `agents/document.py` | 協助者按「產生」 | 依送出條件出正式版或草稿，呼叫 `tools/make_agreement.py` |
+| ④ 分派 | `agents/triage.py` | 核對完成、每次回答 | 排出農民要回答的全部題目（核對題、q1–q3、依分數選出的法律題、期間）；q1 答「不是」就停止 |
+| ⑤ 文件 | `agents/document.py` | 題目答完（之後改答案會重做） | 依送出條件出正式版或草稿，呼叫 `tools/make_agreement.py`；備註放法律注意事項的固定短句 |
+| ⑥ 報告 | `agents/report.py` | 文件之後 | 「土地分析報告」：土地與面積、地主與持分、回答、法律注意事項（分數、理由、參考）、待辦、同意書狀態；全部固定範本 |
+| ⑦ 服務台 | `agents/faq.py` | 農民按「問問題」 | 從固定答案庫挑答案；「下一步」依案例狀態套範本；法律問題不判斷，請他問地政事務所或農會 |
+| 法律注意事項 | `agents/legal.py` | 每次回答 | 規則打分，只問最可能的幾題並追問（見 [legal-questions.md](legal-questions.md)） |
 
 流程由 `app/pipeline.py` 串接：照片收齊後，依序執行 ②③④，任何一步失敗就把案例標成「需人工處理」並建立任務，不重試到看起來成功。
 
@@ -115,7 +118,8 @@ flowchart LR
 - 照片、案例 JSON、產生的 Word 都在 `data/output/`，不進 git。
 - 農民端 API 不回傳身分證號、他人姓名。
 - 操作紀錄只記欄位名稱與動作，不記身分證號。
-- 農民連結使用隨機 token（128 位元）。協助者端 MVP 只開在本機；要給外網用時必須加登入。
+- 農民連結使用隨機 token（128 位元）。`/api/cases` 只開在本機；要給外網用時必須拿掉或加登入。
+- 核對卡會顯示同一張謄本上其他共有人的姓名與遮蔽證號（來自農民自己拍的照片），但不顯示地址。
 
 ## 9. 執行
 

@@ -16,14 +16,31 @@ const KW = {
   // 「有沒有」類的題目（例如有沒有租約）：先找否定，再找「有」
   haveNo: ["沒有", "沒", "無", "毋"],
   have: ["有"],
+  // 核對題「謄本上寫的跟你知道的一樣嗎」：先找「不一樣」類（含「一樣」兩個字），再找「一樣」類
+  diff: ["不一樣", "不同", "不對", "錯", "不是", "毋是", "毋著", "無仝", "無共款"],
+  same: ["一樣", "相同", "對", "是", "仝款", "共款", "著"],
 };
 const hit = (k, t) => KW[k].some((w) => t.includes(w));
 const clean = (raw) => String(raw ?? "").replace(/[\s，。！？、,.!?]/g, "");
 
+// 「三年」「3年」「五」→ 數字。句子裡的每個數字都抓出來（十五、115 也照樣算成一個數）。
+const CN = { 一: 1, 壹: 1, 二: 2, 兩: 2, 三: 3, 參: 3, 四: 4, 五: 5, 伍: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+function cnNum(w) {
+  if (!w.includes("十")) return [...w].reduce((n, c) => n * 10 + (CN[c] ?? 0), 0);
+  const [a, b] = w.split("十");
+  return (a ? CN[a] ?? 1 : 1) * 10 + (b ? CN[b] ?? 0 : 0);
+}
+const numbersIn = (t) => (t.match(/\d+|[一壹二兩三參四五伍六七八九十]+/g) || []).map((w) => (/^\d+$/.test(w) ? Number(w) : cnNum(w)));
+/** 句子裡提到的年數，只算 allowed 裡的；剛好一個才回傳，沒有或好幾個（模稜兩可）回傳 null。 */
+function yearsIn(t, allowed) {
+  const found = [...new Set(numbersIn(t.replace(/一下|一樣|一點|一定/g, "")).filter((n) => allowed.includes(n)))];
+  return found.length === 1 ? String(found[0]) : null;
+}
+
 /** 選項文字是不是否定的說法（不是、沒有、不知道…），用來對應 yes／no。 */
 export const isNegative = (label) => /^(不|沒|無|毋)/.test(clean(label));
 
-/** kind：yesno／who／cat／have。回傳答案代碼，聽不懂回傳 null。 */
+/** kind：yesno／who／cat／have／same／years。回傳答案代碼，聽不懂回傳 null。 */
 export function match(kind, raw) {
   const t = clean(raw);
   if (!t) return null;
@@ -31,6 +48,11 @@ export function match(kind, raw) {
   if (kind === "yesno") return hit("no", t) ? "no" : hit("yes", t) ? "yes" : null;
   if (kind === "have") return hit("haveNo", t) ? "no" : hit("have", t) ? "yes" : null;
   if (kind === "who") return hit("other", t) ? "other" : hit("self", t) ? "self" : null;
+  if (kind === "same") {
+    const u = t.replace(/沒錯|不錯/g, "對"); // 「沒錯」「不錯」是對，不要被「錯」吃掉
+    return hit("diff", u) ? "no" : hit("same", u) ? "yes" : null;
+  }
+  if (kind === "years") return yearsIn(t, [1, 3, 5]);
   if (kind === "cat") {
     const found = ["承租", "託耕", "輪耕", "分耕"].filter((c) => hit(c, t));
     return found.length === 1 ? found[0] : null;
@@ -49,6 +71,13 @@ export function matchOption(q, raw) {
   const opts = q.options || [];
   const exact = opts.find((o) => clean(o.label) === t);
   if (exact) return exact.value;
+  if (q.kind === "years") {
+    // 年數照這題的選項比對（選項 value 是 "1"／"3"／"5"）
+    if (hit("unsure", t)) return "unsure";
+    const allowed = opts.map((o) => Number(o.value)).filter((n) => Number.isInteger(n) && n > 0);
+    const y = yearsIn(t, allowed.length ? allowed : [1, 3, 5]);
+    return y && opts.some((o) => o.value === y) ? y : null;
+  }
   const code = match(q.kind, raw);
   if (code) {
     const byValue = opts.find((o) => o.value === code);

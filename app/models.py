@@ -27,6 +27,35 @@ QUESTION_UI: dict[str, dict] = {
            "options": ["承租", "託耕", "輪耕", "分耕", "unsure"]},
 }
 
+# 核對題：農民自己對照謄本確認 AI 讀到的內容（固定範本）
+CHECK_OPTIONS = (("yes", "一樣"), ("no", "不一樣"), ("unsure", "我不確定"))
+CHECK_LAND_TEXT = "第 {n} 筆地，跟謄本上寫的一樣嗎？"
+CHECK_LAND_SAY = "請看一下，這筆地，跟你的謄本上寫的一樣嗎？"
+CHECK_OWNER_TEXT = "第 {n} 筆地的地主，跟謄本上一樣嗎？"
+CHECK_OWNER_SAY = "請看一下，地主的名字和持分，跟謄本上一樣嗎？"
+UNREADABLE = "（看不清）"
+
+# 實施期間：農民選 1、3、5 年，從今年（民國）1 月 1 日起算
+PERIOD_TEXT = "這份同意書要簽幾年？"
+PERIOD_SAY = "這份同意書要簽幾年？一年、三年，還是五年？"
+PERIOD_YEARS = ("1", "3", "5")
+
+
+def roc_year(when: datetime | None = None) -> int:
+    """民國年 = 西元年 − 1911。"""
+    return (when or now()).year - 1911
+
+
+def period_label(years: str, start: int) -> str:
+    """選項文字，例如「3 年（115–117 年）」。"""
+    n = int(years)
+    return f"{n} 年（{start} 年）" if n == 1 else f"{n} 年（{start}–{start + n - 1} 年）"
+
+
+def period_text(years: str, start: int) -> str:
+    """同意書「實施期間」欄的文字，例如「115.01.01起」換行「117.12.31止」。"""
+    return f"{start}.01.01起\n{start + int(years) - 1}.12.31止"
+
 
 def now() -> datetime:
     return datetime.now().astimezone()
@@ -91,12 +120,12 @@ class Ownership(BaseModel):
 
 
 class FieldClaim(BaseModel):
-    """擷取主張：AI 認為某頁寫了什麼。人確認後 value 才算數。"""
+    """擷取主張：AI 認為某頁寫了什麼。農民對照謄本說「一樣」後 value 才算數。"""
     id: str           # 例：P1-lot_no、P1-O1-owner
     target: str       # pid 或 oid
     field: ClaimField
     ai_value: str     # AI 讀到的原值；看不清為空字串
-    value: str        # 目前的值（協助者可修正）
+    value: str        # 目前的值（= ai_value；農民只能說一樣或不一樣，不能改值）
     status: ClaimStatus = ClaimStatus.pending
     note: str = ""
     flags: list[str] = Field(default_factory=list)
@@ -112,15 +141,8 @@ class FarmerAnswer(BaseModel):
     at: datetime = Field(default_factory=now)
 
 
-class Manual(BaseModel):
-    """協助者人工填寫。換算規則確認前，面積一律人工填，不自動算。"""
-    area_ha: dict[str, str] = Field(default_factory=dict)        # pid -> 本筆面積（公頃）
-    right_area_ha: dict[str, str] = Field(default_factory=dict)  # oid -> 權利面積（公頃）
-    period: str = ""
-    cultivator: str = ""                                         # 耕作人及 ID
-
-
 class Task(BaseModel):
+    """系統待辦（目前只用在自動處理失敗）。協助者角色已取消，不再產生給協助者的任務。"""
     id: int
     to: str = "helper"
     text: str
@@ -128,7 +150,7 @@ class Task(BaseModel):
 
 
 class LegalNote(BaseModel):
-    """協助者對某個法律注意事項的處理紀錄。系統不下法律結論，只記錄人怎麼處理。"""
+    """舊版協助者對法律注意事項的處理紀錄。協助者角色已取消（農民回答即算處理）；保留只為相容舊資料。"""
     by: str
     note: str = ""
     at: datetime = Field(default_factory=now)
@@ -152,8 +174,7 @@ class Case(BaseModel):
     ownerships: list[Ownership] = Field(default_factory=list)
     claims: list[FieldClaim] = Field(default_factory=list)
     answers: dict[str, FarmerAnswer] = Field(default_factory=dict)
-    legal_notes: dict[str, LegalNote] = Field(default_factory=dict)  # 法律注意事項 id -> 協助者處理紀錄
-    manual: Manual = Field(default_factory=Manual)
+    legal_notes: dict[str, LegalNote] = Field(default_factory=dict)  # 不再使用，保留相容舊資料
     tasks: list[Task] = Field(default_factory=list)
     events: list[Event] = Field(default_factory=list)
     documents: list[str] = Field(default_factory=list)
