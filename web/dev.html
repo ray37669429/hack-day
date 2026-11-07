@@ -90,6 +90,22 @@ main { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(300px, 2
 .warnline { color: var(--orange); font-size: 11px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* 事件串流：新的在底部，舊的從頂部淡出，不用捲動 */
+.tbtn.demo { background: var(--blue-d); border-color: var(--blue-d); font-weight: 600; }
+.tbtn.demo:hover { background: var(--blue); }
+.demo { flex: none; margin: 8px 8px 0; border: 1px solid var(--blue-d); background: #16233A; border-radius: 4px; padding: 8px 10px; }
+.demo[hidden] { display: none; }
+.demo .top { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--fg3); font-family: var(--mono); }
+.demo .top b { color: var(--blue); font-weight: 600; font-family: inherit; letter-spacing: .06em; }
+.demo .ctl { margin-left: auto; display: flex; gap: 4px; }
+.demo .ctl button { border: 1px solid var(--line); background: var(--panel2); color: var(--fg); border-radius: 3px; padding: 0 7px; cursor: pointer; font-size: 12px; line-height: 20px; white-space: nowrap; }
+.demo .top { white-space: nowrap; }
+.demo .ctl button:hover { border-color: var(--blue); }
+.demo h3 { margin: 4px 0 2px; font-size: 15px; font-weight: 600; }
+.demo p { margin: 0; color: var(--fg2); font-size: 12.5px; }
+.demo .bar { height: 3px; background: var(--line2); border-radius: 2px; margin-top: 7px; overflow: hidden; }
+.demo .bar i { display: block; height: 100%; background: var(--blue); transition: width .4s; }
+.demo .links { margin-top: 6px; display: flex; gap: 6px; }
+.node.focus rect { stroke: var(--blue); stroke-width: 2.5; filter: drop-shadow(0 0 9px rgba(76,144,240,.8)); }
 .stream { flex: 1; min-height: 0; overflow: hidden; padding: 8px; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 40px); mask-image: linear-gradient(to bottom, transparent 0, #000 40px); }
 .ev { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 7px; flex: none; }
@@ -118,6 +134,8 @@ main { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(300px, 2
   <span class="sep"></span>
   <button class="tbtn" data-new="C01">＋ C01 一般</button><button class="tbtn" data-new="C02">＋ C02 共有</button><button class="tbtn" data-new="C03">＋ C03 易錯</button>
   <span class="sep"></span>
+  <button class="tbtn demo" id="demoBtn" title="自動跑一遍完整流程，邊跑邊說明">▶ 自動展示</button>
+  <span class="sep"></span>
   <span class="crumb" id="crumb">尚未選擇案例</span>
   <a class="tbtn" id="openFarmer" href="#" target="_blank" hidden>另開農民頁</a>
   <a class="tbtn" id="openReport" href="#" target="_blank" hidden>分析報告</a>
@@ -131,7 +149,7 @@ main { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(300px, 2
       <div class="legend"><span><i style="background:var(--fg3)"></i>等待</span><span><i style="background:var(--blue)"></i>進行中</span><span><i style="background:var(--green)"></i>完成</span><span><i style="background:var(--orange)"></i>有警示／待處理</span><span>虛線框＝農民本人</span></div></section>
     <section class="pane"><h2>物件：土地・地主・欄位主張<span class="cnt" id="objCnt"></span></h2><div class="objs" id="objs"><p class="empty">建立案例後，擷取出來的物件會出現在這裡。</p></div></section>
   </div>
-  <section class="pane"><h2>Agent 事件串流<span class="cnt" id="evCnt"></span></h2><div class="stream" id="stream" aria-live="polite">
+  <section class="pane"><h2>Agent 事件串流<span class="cnt" id="evCnt"></span></h2><div class="demo" id="demo" hidden aria-live="polite"></div><div class="stream" id="stream" aria-live="polite">
     <p class="empty">按上面的「＋ C01／C02／C03」建立測試案例。<br>左邊是農民手機，中間是流程與物件，<br>這裡即時顯示每個 agent 做了什麼。</p></div></section>
 </main>
 <script>
@@ -225,7 +243,7 @@ function graphSvg(state) {
   };
   const node = (n) => {
     const [st, m] = state[n.id] || ["", "—"];
-    const cls = `node ${st} ${n.human ? "human" : ""} ${flashNode === n.id && Date.now() < flashUntil ? "flash" : ""}`;
+    const cls = `node ${st} ${n.human ? "human" : ""} ${flashNode === n.id && Date.now() < flashUntil ? "flash" : ""} ${DEMO.running && DEMO.node === n.id ? "focus" : ""}`;
     return `<g class="${cls}" transform="translate(${n.x},${n.y})"><rect width="${W}" height="${H}"/>
       <circle class="dot" cx="13" cy="17" r="4"/><text class="t" x="24" y="22">${esc(n.name)}</text><text class="m" x="13" y="43">${esc(m)}</text></g>`;
   };
@@ -363,6 +381,134 @@ async function poll() {
   $("#objCnt").textContent = `${c.parcels.length} 筆土地・${c.ownerships.length} 位地主・${c.claims.length} 個主張（滑鼠停在標籤上看值）`;
 }
 
+// ───── 自動展示：自己操作左邊的農民頁，跑完整個流程，右上說明卡逐步解說
+const DEMO = { running: false, paused: false, skip: false, node: null, step: 0 };
+const STOP = new Error("stop");
+const DEMO_STEPS = 14;
+const DEMO_PLAN = { q1: "yes", q2: "other", q3: "承租", "L-lease": "yes", "L-lease-375": "no", "L-coowner": "yes", "L-coowner-reach": "yes", period: "3" };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const norm = (t) => String(t || "").replace(/\s+/g, "");
+const fdoc = () => $("#phone").contentDocument;
+
+async function hold(ms) { // 等一下；可暫停、可按「下一步」跳過
+  for (let left = ms; left > 0;) {
+    if (!DEMO.running) throw STOP;
+    if (DEMO.skip) { DEMO.skip = false; return; }
+    await sleep(100);
+    if (!DEMO.paused) left -= 100;
+  }
+}
+async function until(fn, ms = 20000) {
+  for (const t = Date.now(); Date.now() - t < ms;) {
+    if (!DEMO.running) throw STOP;
+    const r = fn();
+    if (r) return r;
+    await sleep(200);
+  }
+  throw new Error("等太久了");
+}
+const findBtn = (pred) => [...(fdoc()?.querySelectorAll("button, a") || [])].find((b) => !b.disabled && pred(norm(b.textContent)));
+async function tap(text, exact = false) {
+  const b = await until(() => findBtn((t) => (exact ? t === norm(text) : t.startsWith(norm(text)))));
+  b.click();
+}
+function say(title, body, node) {
+  DEMO.step += 1; DEMO.node = node;
+  const box = $("#demo");
+  box.hidden = false;
+  box.innerHTML = `<div class="top"><b>自動展示</b><span>${Math.min(DEMO.step, DEMO_STEPS)} / ${DEMO_STEPS}</span>
+    <span class="ctl"><button data-demo="pause">${DEMO.paused ? "▶ 繼續" : "⏸ 暫停"}</button><button data-demo="next">⏭ 下一步</button><button data-demo="stop">⏹ 結束</button></span></div>
+    <h3>${esc(title)}</h3><p>${esc(body)}</p><div class="bar"><i style="width:${Math.round((Math.min(DEMO.step, DEMO_STEPS) / DEMO_STEPS) * 100)}%"></i></div>`;
+  if (caseId) poll();
+}
+async function devPhoto(kind) { // 用農民頁的本機測試按鈕送假謄本
+  const sel = await until(() => fdoc()?.querySelector("#devCase"));
+  sel.value = "C02"; sel.dispatchEvent(new Event("change", { bubbles: true }));
+  await tap(kind);
+}
+async function farmerView() { return (await fetch(`../api/f/${token}`, { cache: "no-store" })).json(); }
+
+async function runDemo() {
+  DEMO.running = true; DEMO.paused = false; DEMO.skip = false; DEMO.step = 0;
+  $("#demoBtn").textContent = "展示中…";
+  try {
+    say("一、建立案例", "幫一位地主開一個案子（假謄本 C02：一筆地、兩位地主共有）。農民只會收到一個專屬連結，不用帳號密碼。", "photo");
+    const r = await fetch("../api/cases", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sample_id: "C02" }) });
+    location.hash = `case=${(await r.json()).id}`;
+    await until(() => token && findBtn((t) => t.startsWith("開始")));
+    await hold(3500);
+
+    say("二、阿伯先說明要做什麼", "高齡農民的畫面：大字、大按鈕、一次一件事，每句話都能聽（OpenAI 語音）。按「開始」。", "photo");
+    await hold(2500); await tap("開始"); await hold(1500);
+
+    say("三、拍照：① 收件 agent 當場檢查", "故意拍一張又暗又糊的照片。收件 agent 立刻退回，用農民聽得懂的話說「照片有點暗」，不會等到隔天才退件。", "intake");
+    await devPhoto("壞照片"); await hold(4500);
+
+    say("四、重拍，這次清楚", "拍清楚的第 1 頁、第 2 頁。每張都會列出「夠亮、清楚」，通過就自動往下，不用另外按。", "intake");
+    await devPhoto("第1頁"); await hold(3500);
+    await devPhoto("第2頁");
+
+    say("五、② 擷取 → ③ 核對 → ④ 分派", "擷取 agent 讀出土地與地主，所有欄位都先標「待確認」——AI 不能自己確認。核對 agent 比對內政部段名清單、加註警示；分派 agent 排出要問農民的題目。", "extract");
+    await until(() => findBtn((t) => t.startsWith("開始回答")), 30000);
+    await hold(4000);
+    DEMO.node = "check"; poll(); await hold(2500);
+    DEMO.node = "triage"; poll(); await hold(2000);
+    await tap("開始回答"); await hold(1200);
+
+    // 一題一題回答
+    let asked = false, legalTold = false;
+    for (let guard = 0; guard < 20; guard++) {
+      const fv = await farmerView();
+      const q = fv.questions.find((x) => !(x.id in fv.answers));
+      if (!q) break;
+      const value = q.id.startsWith("C-") ? "yes" : DEMO_PLAN[q.id] ?? "yes";
+      const label = q.options.find((o) => o.value === value)?.label || q.options[0].label;
+      if (q.id === "q1") say("六、這是你的地嗎？", "用「認得出來」代替「記得起來」：列出謄本上的地號與面積，附上他自己拍的照片。", "farmer");
+      else if (q.id.startsWith("C-") && !DEMO.toldCheck) { DEMO.toldCheck = true; say("七、農民自己核對", "沒有協助者：每筆地、每位地主一張卡，拿紙本對對看，答「一樣」才算確認。核對 agent 的警示也用農民的說法顯示在卡片上。", "farmer"); }
+      else if (q.id === "q2") {
+        if (!asked) {
+          asked = true;
+          say("八、⑦ 服務台：不懂可以直接問", "農民按同一顆麥克風問「為什麼要一樣？」，阿伯從固定答案庫回答，不讓 AI 自由說話；問到法律就請他問地政事務所或農會。", "faq");
+          await fetch(`../api/f/${token}/ask`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: "為什麼要一樣？", channel: "voice" }) });
+          await hold(3500);
+          await fetch(`../api/f/${token}/ask`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: "這樣簽會不會有法律問題？", channel: "voice" }) });
+          await hold(3500);
+        }
+        say("九、誰在種、怎麼種", "回答「別人」在種、「承租」。這兩個答案會讓法律注意事項的分數改變。", "farmer");
+      } else if (q.legal && !legalTold) {
+        legalTold = true;
+        say("十、法律注意事項：只問最可能的", "agent 用固定規則算分（承租 90、共有土地 55），只問分數最高的幾題；答「有租約」再追問「是三七五嗎」。這是提醒不是判斷，法條都標「待法律專業確認」。", "legal");
+      } else if (q.id === "period") say("十一、選要簽幾年", "實施期間用大按鈕選 1／3／5 年，不用打字。耕作人的名字和身分證號留白，簽的時候手寫。", "farmer");
+      await hold(q.id.startsWith("C-") ? 1500 : 3000);
+      await tap(label, true);
+      for (let k = 0; k < 40; k++) { const v = await farmerView(); if (q.id in v.answers) break; await sleep(250); }
+      await hold(1600);
+    }
+
+    say("十二、⑤ 文件 agent：產生同意書", "題目答完自動產生「土地使用同意書」：依紙本版面，公頃面積用確認過的數字換算，法律提醒寫進備註；還有沒處理的就標「草稿」。", "document");
+    await hold(4500);
+    say("十三、⑥ 報告 agent：土地分析報告", "同時產生白話的分析報告：土地與面積、地主與持分、農民的回答、法律注意事項的分數與理由、還要處理的事。", "report");
+    await hold(4500);
+    say("十四、完成", "全程沒有協助者，也沒有讓 AI 自己確認任何欄位。右邊是每個 agent 做過的事，可以下載同意書和分析報告。", "report");
+    $("#demo").insertAdjacentHTML("beforeend", `<div class="links"><a class="tbtn" href="../api/f/${token}/report" target="_blank">下載分析報告</a><a class="tbtn" href="farmer.html#t=${token}" target="_blank">另開農民頁</a></div>`);
+  } catch (err) {
+    if (err !== STOP) {
+      $("#demo").hidden = false;
+      $("#demo").insertAdjacentHTML("beforeend", `<p style="color:var(--orange);margin-top:6px">展示中斷：${esc(err.message || err)}。可以按「▶ 自動展示」重來。</p>`);
+    } else $("#demo").hidden = true;
+  } finally {
+    DEMO.running = false; DEMO.node = null; DEMO.toldCheck = false;
+    $("#demoBtn").textContent = "▶ 自動展示";
+  }
+}
+$("#demoBtn").addEventListener("click", () => { if (!DEMO.running) runDemo(); });
+document.addEventListener("click", (e) => {
+  const d = e.target.closest("[data-demo]");
+  if (!d) return;
+  if (d.dataset.demo === "pause") { DEMO.paused = !DEMO.paused; d.textContent = DEMO.paused ? "▶ 繼續" : "⏸ 暫停"; }
+  if (d.dataset.demo === "next") DEMO.skip = true;
+  if (d.dataset.demo === "stop") DEMO.running = false;
+});
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-new]"); if (b) newCase(b.dataset.new); });
 window.addEventListener("hashchange", () => { caseId = new URLSearchParams(location.hash.slice(1)).get("case") || ""; start(); });
 start();
