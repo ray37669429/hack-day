@@ -111,7 +111,7 @@ def latest_photos(case: Case) -> dict[int, Photo]:
     """每一頁最後一張合格的照片。"""
     latest: dict[int, Photo] = {}
     for p in case.photos:
-        if p.ok:
+        if p.ok and not p.retired:
             latest[p.page] = p
     return latest
 
@@ -165,6 +165,7 @@ def farmer_view(token: str):
         "answers": farmer_answers(case),
         "documents": farmer_documents(case),
         "todo": actions.todo(case),
+        "retake": actions.retake_pages(case),
         "report": farmer_report(case),
     }
 
@@ -245,6 +246,21 @@ def farmer_report_file(token: str):
     if not path.is_file():
         raise HTTPException(404, "報告還沒做好")
     return FileResponse(path, filename=report.FILE)
+
+
+class Retake(BaseModel):
+    page: int
+
+
+@app.post("/api/f/{token}/retake")
+def retake(token: str, body: Retake):
+    """回到拍照：重拍某一頁。清掉擷取結果、核對答案和舊的同意書與報告，拍好後自動重新讀謄本。"""
+    case = _farmer(token)
+    _act(actions.retake, case, "farmer", body.page)
+    for old in (store.case_dir(case.id) / "documents").glob("*.docx"):
+        old.unlink()
+    store.save(case)
+    return farmer_view(token)
 
 
 class Ask(BaseModel):

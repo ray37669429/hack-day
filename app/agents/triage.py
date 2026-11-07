@@ -57,6 +57,27 @@ def _basic(qid: str) -> dict:
     return _q(qid, QUESTIONS[qid][0], ui["say"], ui["kind"], [(v, ANSWER_LABEL[v]) for v in ui["options"]])
 
 
+# 核對 agent 的警示 → 農民的說法（固定範本）。「看不清」卡片上已經顯示，不重複。
+WARN_TEXT = (
+    ("相同地號", "有另一筆地的地號一樣，請看清楚段名"),
+    ("地號格式", "地號的寫法看起來怪怪的，請仔細對一下"),
+    ("持分加總", "這筆地的持分加起來不對，請仔細對一下"),
+    ("官方", "段名跟官方的名單對不起來，請仔細對一下"),
+    ("段名", "段名跟官方的名單對不起來，請仔細對一下"),
+)
+
+
+def _warnings(case: Case, targets: set[str]) -> list[str]:
+    out = []
+    for c in case.claims:
+        if c.target in targets:
+            for f in c.flags:
+                text = next((t for k, t in WARN_TEXT if k in f), None)
+                if text and text not in out:
+                    out.append(text)
+    return out
+
+
 def _check_questions(case: Case) -> list[dict]:
     out = []
     for p in case.parcels:
@@ -66,14 +87,14 @@ def _check_questions(case: Case) -> list[dict]:
                           "rows": [{"label": "坐落", "value": _shown(case, f"{p.pid}-location")},
                                    {"label": "地號", "value": _shown(case, f"{p.pid}-lot_no")},
                                    {"label": "面積", "value": area if area == UNREADABLE else f"{area} 平方公尺"}],
-                          "photo_page": p.source.page}))
+                          "photo_page": p.source.page, "warn": _warnings(case, {p.pid})}))
     for o in case.ownerships:  # 只放姓名、遮蔽後的證號、持分；不放地址
         out.append(_q(f"{CHECK_OWNER}{o.oid}", CHECK_OWNER_TEXT.format(n=parcel_no(case, o.pid)), CHECK_OWNER_SAY,
                       "same", CHECK_OPTIONS, card={
                           "rows": [{"label": "地主", "value": _shown(case, f"{o.oid}-owner")},
                                    {"label": "身分證", "value": _shown(case, f"{o.oid}-id_no")},
                                    {"label": "持分", "value": _shown(case, f"{o.oid}-share")}],
-                          "photo_page": o.source.page}))
+                          "photo_page": o.source.page, "warn": _warnings(case, {o.oid})}))
     return out
 
 

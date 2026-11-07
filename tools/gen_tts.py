@@ -10,6 +10,7 @@
 
 用法：
     python tools/gen_tts.py --dry-run                 # 只列出句子
+    <本機環境的 python> tools/gen_tts.py --engine local --lang zh --missing   # 只補還沒有音檔的國語句子
     <本機環境的 python> tools/gen_tts.py --engine local --only q1   # 本機試一句
     <本機環境的 python> tools/gen_tts.py --engine local             # 本機產生全部國語
     python tools/gen_tts.py --engine api              # 雲端產生國語＋台語
@@ -162,6 +163,7 @@ def main() -> int:
     ap.add_argument("--lang", choices=["zh", "nan", "all"], default="all")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--only", help="只產生某個 id，例如 q1")
+    ap.add_argument("--missing", action="store_true", help="只產生還沒有音檔、或句子改過的")
     args = ap.parse_args()
 
     load_env()
@@ -173,7 +175,8 @@ def main() -> int:
     if args.dry_run:
         for p in prompts:
             for lang in wanted:
-                print(f"[{lang}] {p['id']}: {p[lang]}")
+                if p.get(lang):
+                    print(f"[{lang}] {p['id']}: {p[lang]}")
         return 0
 
     engine = {"local": LocalEngine, "cosyvoice": CosyVoiceEngine, "api": ApiEngine}[args.engine]()
@@ -186,9 +189,14 @@ def main() -> int:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {"items": {}}
     for p in prompts:
         entry = manifest["items"].setdefault(p["id"], {"files": {}})
+        changed = entry.get("zh_text") != p["zh"]
         entry["zh_text"] = p["zh"]
         for lang in langs:
+            if not p.get(lang):  # 台語還沒校對的句子留空，跳過
+                continue
             rel = f"{lang}/{p['id']}.wav"
+            if args.missing and not changed and entry["files"].get(lang) and (AUDIO / rel).exists():
+                continue
             (AUDIO / lang).mkdir(parents=True, exist_ok=True)
             t0 = time.time()
             engine.synth(p[lang], lang, AUDIO / rel)

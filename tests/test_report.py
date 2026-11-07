@@ -49,7 +49,7 @@ def test_report_draft_when_unreadable_c03(client):
     r = answer_all(client, token)
     assert r["report"]["draft"] and r["report"]["todo"] >= 1
     text = report_text(cid)
-    assert "土地分析報告（草稿）" in text and "有字看不清" in text and "印出來後請對照謄本寫上" in text
+    assert "土地分析報告（草稿）" in text and "有字看不清" in text and "請重拍第 2 張" in text
 
 
 def test_ask_desk(client):

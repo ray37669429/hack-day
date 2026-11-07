@@ -110,6 +110,31 @@ def _next(case: Case, next_question: str | None) -> str:
     return "都好了。請下載同意書，印出來簽名蓋章。"
 
 
+# 「下一步」畫面上的文字會帶入題目或張數，但唸的是固定句子（才有預先產生的音檔）
+NEXT_SAY = {
+    "photo": "現在請你拍土地謄本，照畫面上的說明拍。",
+    "wait": "現在在讀你的謄本，你不用做事，等一下就好。",
+    "human": "系統讀不了這份謄本。請重新拍一次，或找家人幫忙。",
+    "answer": "現在請你回答畫面上的問題。",
+    "done": "都好了。請下載同意書，印出來簽名蓋章。",
+}
+
+
+def _next_say(case: Case, next_question: str | None) -> str:
+    if case.stage == Stage.collecting:
+        return NEXT_SAY["photo"]
+    if case.stage == Stage.extracting:
+        return NEXT_SAY["wait"]
+    if case.stage == Stage.needs_human:
+        return NEXT_SAY["human"]
+    return NEXT_SAY["answer"] if next_question else NEXT_SAY["done"]
+
+
+def spoken() -> list[str]:
+    """服務台會唸的全部固定句子（給 tools/collect_prompts.py 產生音檔）。"""
+    return [f.answer for f in FAQS if f.answer] + [FALLBACK, NOT_HEARD] + list(dict.fromkeys(NEXT_SAY.values()))
+
+
 def reply(case: Case, text: str, next_question: str | None = None) -> dict:
     """回答一個問題。next_question：農民現在該回答的題目文字（沒有就是 None）。"""
     f = match(text)
@@ -118,7 +143,8 @@ def reply(case: Case, text: str, next_question: str | None = None) -> dict:
     elif f is None:
         fid, answer = "fallback", FALLBACK
     elif f.id == "next":
-        fid, answer = "next", _next(case, next_question)
+        return {"id": "next", "answer": _next(case, next_question), "say": _next_say(case, next_question),
+                "suggestions": SUGGEST[_phase(case, next_question)]}
     else:
         fid, answer = f.id, f.answer
     return {"id": fid, "answer": answer, "say": answer, "suggestions": SUGGEST[_phase(case, next_question)]}

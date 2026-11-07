@@ -106,6 +106,7 @@ class Photo(BaseModel):
     brightness: float
     sharpness: float
     at: datetime = Field(default_factory=now)
+    retired: bool = False  # 農民按了重拍，這張不再使用（保留紀錄）
 
 
 class Parcel(BaseModel):

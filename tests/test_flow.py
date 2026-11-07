@@ -102,7 +102,7 @@ def test_c01_full_flow_by_farmer_only(client):
     cid, token = ready_case(client, "C01")
     fv = client.get(f"/api/f/{token}").json()
     assert set(fv) == {"stage", "pages_expected", "pages_done", "lands", "photos", "questions", "answers",
-                       "documents", "todo", "report"}
+                       "documents", "todo", "retake", "report"}
     qs = fv["questions"]
     assert [q["id"] for q in qs] == ["q1", "C-land-P1", "C-land-P2", "C-owner-P1-O1", "C-owner-P2-O1",
                                      "q2", "q3", "period"]
@@ -118,11 +118,13 @@ def test_c01_full_flow_by_farmer_only(client):
     assert [(o["value"], o["label"]) for o in land["options"]] == [("yes", "一樣"), ("no", "不一樣"), ("unsure", "我不確定")]
     assert land["card"] == {"rows": [{"label": "坐落", "value": "範例縣試驗鄉示範段"},
                                      {"label": "地號", "value": "0123-0004"},
-                                     {"label": "面積", "value": "1234.56 平方公尺"}], "photo_page": 1}
+                                     {"label": "面積", "value": "1234.56 平方公尺"}], "photo_page": 1,
+                            # 虛構段名不在內政部清單裡 → 核對 agent 的警示用農民的說法出現在卡片上
+                            "warn": ["段名跟官方的名單對不起來，請仔細對一下"]}
     owner = qs[4]
     assert owner["text"] == "第 2 筆地的地主，跟謄本上一樣嗎？"
     assert owner["card"] == {"rows": [{"label": "地主", "value": "農民A"}, {"label": "身分證", "value": "A12345****"},
-                                      {"label": "持分", "value": "全部 1分之1"}], "photo_page": 2}
+                                      {"label": "持分", "value": "全部 1分之1"}], "photo_page": 2, "warn": []}
     assert qs[0]["card"] is None and qs[-1]["card"] is None
     period = qs[-1]
     assert period["text"] == "這份同意書要簽幾年？"
@@ -209,7 +211,7 @@ def test_c03_unreadable_share_stays_pending(client):
     with pytest.raises(actions.ActionError):
         actions.confirm_claim(store.load(cid), "farmer", "P2-O1-share")
     r = answer_all(client, token)
-    assert "第 2 筆地：有字看不清楚，印出來後請對照謄本寫上" in r["todo"]
+    assert "第 2 筆地：有字看不清楚，請重拍第 2 張" in r["todo"]
     assert r["documents"] == [{"name": "同意書_1_草稿.docx", "url": r["documents"][0]["url"], "draft": True}]
     case = client.get(f"/api/cases/{cid}").json()
     claims = {c["id"]: c for c in case["claims"]}
@@ -226,7 +228,7 @@ def test_c03_unreadable_share_stays_pending(client):
 def test_check_different_then_same(client):
     cid, token = ready_case(client, "C01")
     r = answer_all(client, token, **{"C-land-P1": "no"})
-    assert r["todo"] == ["第 1 筆地：資料跟謄本不一樣，印出來後請照謄本改正"]
+    assert r["todo"] == ["第 1 筆地：資料跟謄本不一樣，請重拍第 1 張"]
     assert r["documents"][0]["draft"]
     case = client.get(f"/api/cases/{cid}").json()
     claims = {c["id"]: c for c in case["claims"]}
@@ -275,3 +277,26 @@ def test_period_unsure_blocks(client):
     r = answer_all(client, token, period="unsure")
     assert r["todo"] == ["還沒決定要簽幾年"] and r["documents"][0]["draft"]
     assert "實施期間未決定" in client.get(f"/api/cases/{cid}").json()["missing"]
+
+
+def test_retake_page_reextracts(client):
+    """回到拍照：重拍第 2 張 → 清掉擷取與核對答案，其他答案保留；拍好後自動重新讀謄本。"""
+    cid, token = ready_case(client, "C03")
+    answer_all(client, token)
+    fv = client.get(f"/api/f/{token}").json()
+    assert fv["retake"] == [2] and fv["documents"]
+    assert client.post(f"/api/f/{token}/retake", json={"page": 9}).status_code == 400
+    r = client.post(f"/api/f/{token}/retake", json={"page": 2})
+    assert r.status_code == 200
+    fv = r.json()
+    assert fv["stage"] == "collecting" and fv["pages_done"] == [1] and fv["documents"] == [] and fv["report"] is None
+    case = client.get(f"/api/cases/{cid}").json()
+    assert case["claims"] == [] and not any(q.startswith("C-") for q in case["answers"])
+    assert {"q1", "q2", "q3", "period"} <= set(case["answers"])
+    assert any(e["action"] == "重拍" for e in case["events"])
+    # 舊照片不再提供；重拍後自動重新擷取，回到待核對
+    assert client.get(f"/api/f/{token}/photos/2").status_code == 404
+    assert upload(client, token, 2, SAMPLES / "C03" / "page2.png").json()["all_pages_done"]
+    fv = client.get(f"/api/f/{token}").json()
+    assert fv["stage"] == "reviewing" and any(q["id"].startswith("C-") for q in fv["questions"])
+    assert client.get(f"/api/f/{token}/photos/2").status_code == 200

@@ -57,8 +57,27 @@ def record_photo(case: Case, actor: str, page: int, file: str, ok: bool, reason:
 
 
 def pages_ok(case: Case) -> bool:
-    good = {p.page for p in case.photos if p.ok}
+    good = {p.page for p in case.photos if p.ok and not p.retired}
     return all(n in good for n in range(1, case.pages_expected + 1))
+
+
+def retake(case: Case, actor: str, page: int) -> None:
+    """農民要重拍某一頁：舊照片標成不再使用，清掉擷取結果與核對答案，回到收照片階段。
+    新照片收齊後，原本的流程（pipeline.after_photos）會自動重新擷取。其他題目的答案保留。"""
+    _require(actor, "farmer")
+    if case.stage == Stage.extracting:
+        raise ActionError("正在讀謄本，請等一下再重拍")
+    if not 1 <= page <= case.pages_expected:
+        raise ActionError(f"頁數要在 1 到 {case.pages_expected} 之間")
+    for p in case.photos:
+        if p.page == page and p.ok:
+            p.retired = True
+    dropped = [q for q in case.answers if q.startswith("C-")]
+    for q in dropped:
+        del case.answers[q]
+    case.parcels, case.ownerships, case.claims, case.documents = [], [], [], []
+    case.stage = Stage.collecting
+    _log(case, actor, "重拍", f"第 {page} 頁；清掉擷取結果與 {len(dropped)} 個核對答案")
 
 
 def set_stage(case: Case, actor: str, stage: Stage, detail: str = "") -> None:
@@ -269,12 +288,26 @@ def missing(case: Case) -> list[str]:
 # 給農民看的待辦（固定範本，用農民的說法；不放編號、不用術語）
 TODO_NOT_MINE = "你說這不是你的地，請拍你自己的謄本"
 TODO_Q1_UNSURE = "你還不確定這是不是你的地，請再看一次"
-TODO_UNREADABLE = "第 {n} 筆地：有字看不清楚，印出來後請對照謄本寫上"
-TODO_DIFFERENT = "第 {n} 筆地：資料跟謄本不一樣，印出來後請照謄本改正"
+TODO_UNREADABLE = "第 {n} 筆地：有字看不清楚，請重拍第 {p} 張"
+TODO_DIFFERENT = "第 {n} 筆地：資料跟謄本不一樣，請重拍第 {p} 張"
 TODO_CHECK_UNSURE = "第 {n} 筆地：你還不確定資料對不對，請再看一次"
-TODO_CANNOT_COMPUTE = "第 {n} 筆地：面積或持分看不懂，印出來後請對照謄本寫上"
+TODO_CANNOT_COMPUTE = "第 {n} 筆地：面積或持分看不懂，請重拍第 {p} 張"
 TODO_PERIOD = "還沒決定要簽幾年"
 TODO_UNANSWERED = "還有題目沒回答"
+
+
+def retake_pages(case: Case) -> list[int]:
+    """建議重拍的頁：有看不清、跟謄本不一樣、或面積持分算不出來的欄位所在的頁。"""
+    pages = set()
+    for c in case.claims:
+        if not c.ai_value or c.status == ClaimStatus.rejected:
+            pages.add(c.source.page)
+    for p in case.parcels:
+        mine = [c for c in case.claims if c.target == p.pid or c.target.startswith(p.pid + "-")]
+        if all(c.status == ClaimStatus.confirmed for c in mine) and not (
+                area_ha(case, p.pid) and all(right_area_ha(case, o.oid) for o in case.ownerships if o.pid == p.pid)):
+            pages |= {c.source.page for c in mine if c.field in (ClaimField.area_m2, ClaimField.share)}
+    return sorted(pages)
 
 
 def todo(case: Case) -> list[str]:
@@ -293,16 +326,19 @@ def todo(case: Case) -> list[str]:
         mine = [c for c in case.claims if c.target == p.pid or owner_pid.get(c.target) == p.pid]
         checks = [f"{triage.CHECK_LAND}{p.pid}"] + [f"{triage.CHECK_OWNER}{o.oid}" for o in case.ownerships
                                                      if o.pid == p.pid]
-        if any(not c.ai_value for c in mine):
-            out.append(TODO_UNREADABLE.format(n=n))
-        if any(c.status == ClaimStatus.rejected for c in mine):
-            out.append(TODO_DIFFERENT.format(n=n))
+        for c in mine:
+            if not c.ai_value:
+                out.append(TODO_UNREADABLE.format(n=n, p=c.source.page))
+        for c in mine:
+            if c.status == ClaimStatus.rejected:
+                out.append(TODO_DIFFERENT.format(n=n, p=c.source.page))
         if any(q in case.answers and case.answers[q].value == "unsure" for q in checks):
             out.append(TODO_CHECK_UNSURE.format(n=n))
         computable = area_ha(case, p.pid) and all(right_area_ha(case, o.oid)
                                                   for o in case.ownerships if o.pid == p.pid)
         if all(c.status == ClaimStatus.confirmed for c in mine) and not computable:
-            out.append(TODO_CANNOT_COMPUTE.format(n=n))
+            pages = sorted({c.source.page for c in mine if c.field in (ClaimField.area_m2, ClaimField.share)})
+            out.append(TODO_CANNOT_COMPUTE.format(n=n, p="、".join(map(str, pages)) or p.source.page))
     if "period" in case.answers and period(case) is None:
         out.append(TODO_PERIOD)
     if triage.unanswered(case):

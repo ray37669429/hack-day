@@ -97,11 +97,22 @@ body.sheet-open #app { padding-bottom: 260px; }
 .thumbbtn:active { border-bottom-width: 2px; }
 .thumbbtn img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; background: #F3EEE3; }
 
-/* 核對題的謄本卡：標籤小、內容大；看不清的用琥珀色＋問號，不用紅色 */
-.chk { display: flex; gap: 12px; align-items: flex-start; }
-.chk dl { flex: 1; min-width: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
-.chk dt { font-size: 18px; color: var(--fg2); }
-.chk dd { margin: 0; font-size: 28px; line-height: 1.3; overflow-wrap: anywhere; }
+/* 核對題的謄本卡：一列一個欄位（標籤小、內容大），不在詞中間斷行；看不清的用琥珀色＋問號，不用紅色 */
+.chk { padding: 10px 14px; }
+.chk dl { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.chk dl > div { display: flex; gap: 10px; align-items: baseline; }
+.chk dt { flex: none; width: 3.4em; font-size: 18px; color: var(--fg2); }
+.chk dd { flex: 1; min-width: 0; margin: 0; font-size: 25px; line-height: 1.3; white-space: pre-line; word-break: keep-all; overflow-wrap: break-word; }
+.chk dd.nw { white-space: nowrap; }
+.chk .warn { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0 0; color: var(--wt); background: var(--wb); border-radius: 10px; padding: 6px 10px; font-size: 19px; }
+.chk .warn svg { width: 22px; height: 22px; flex: none; margin-top: 3px; }
+.chk .photo { margin-top: 8px; min-height: 56px; font-size: 20px; }
+.answers { display: flex; flex-direction: column; gap: 10px; }
+.btn.lit { background: var(--gl); border-color: var(--g); color: var(--gt); }
+.steps button { all: unset; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; min-height: 56px; cursor: pointer; border-radius: 10px; }
+.steps button:focus-visible { outline: 4px solid #1F5FAD; outline-offset: 2px; }
+.steps li.go { min-height: 56px; cursor: pointer; }
+.steps li.go .lbl { text-decoration: underline; text-underline-offset: 3px; }
 .chk dd.unclear { display: inline-flex; align-items: center; gap: 6px; color: var(--wt); background: var(--wb); border-radius: 10px;
   padding: 2px 10px; font-size: 24px; }
 .chk dd.unclear svg { width: 26px; height: 26px; flex: none; }
@@ -184,6 +195,7 @@ body.sheet-open #app { padding-bottom: 260px; }
 
 #sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; transform: translateY(105%); transition: transform .3s ease-out; }
 #sheet.up { transform: none; }
+#sheet:not(.up) { visibility: hidden; }
 #sheet.ok { background: var(--gl); color: var(--gt); }
 #sheet.warn { background: var(--wb); color: var(--wt); }
 #sheet .in { max-width: 480px; margin: 0 auto; padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
@@ -349,7 +361,8 @@ function normCard(c) {
   if (!c || typeof c !== "object" || !Array.isArray(c.rows)) return null;
   const rows = c.rows.filter((r) => r && typeof r === "object").map((r) => ({ label: String(r.label ?? ""), value: String(r.value ?? "") }));
   const pg = Number(c.photo_page);
-  return rows.length ? { rows, page: c.photo_page != null && Number.isFinite(pg) ? pg : null } : null;
+  const warn = Array.isArray(c.warn) ? c.warn.filter((w) => typeof w === "string" && w) : [];
+  return rows.length ? { rows, warn, page: c.photo_page != null && Number.isFinite(pg) ? pg : null } : null;
 }
 // 步驟列：核對謄本（q1 的土地清單、核對題）算「核對」，其他題目算「回答」
 const isCheckQ = (q) => Boolean(q) && (q.kind === "same" || q.id.startsWith("C-") || q.id === "q1");
@@ -371,6 +384,7 @@ const SAY = {
   next: (n) => `很好。請拍第 ${n} 張。`,
   shoot: (n) => `請拍第 ${n} 張土地謄本。`,
   rb: (label) => `你講，${label}，對嗎？`,
+  retake: "要重拍哪一張？請按下面的按鈕。",
   intro: (n) => `你好，我們要幫你準備土地使用同意書。要拍土地謄本 ${n} 張，核對謄本上的資料，回答幾個問題，再選要簽幾年，大約 10 分鐘。`,
 };
 
@@ -379,7 +393,7 @@ const st = {
   screen: "loading", view: null, page: 1, preview: null, checking: false, result: null,
   thumbs: {}, zoom: null,
   q: 0, mode: "wait", pending: null, fails: 0, note: "", heard: "",
-  sheet: null, dir: "fwd", busy: false,
+  sheet: null, flash: null, dir: "fwd", busy: false,
   docWait: 0, // 同意書還沒出來：0 還沒等、1 等一下再問一次、2 問過了
 };
 
@@ -456,9 +470,13 @@ const bubble = (t, s, tag = "") => `<button class="bubble" data-act="hear">${tag
 const btn = (act, icon, label, cls = "", extra = "") => `<button class="btn ${cls}" data-act="${act}" ${extra}>${icon ? ic(icon) : ""}${esc(label)}</button>`;
 
 const STEPS = ["拍照", "等一下", "核對", "回答", "下載"];
-const steps = (cur) => `<ol class="steps" aria-label="步驟">${STEPS.map((s, i) => {
-  const cls = i < cur ? "done" : i === cur ? "now" : "";
-  return `<li class="${cls}"${i === cur ? ' aria-current="step"' : ""}><span class="n">${i < cur ? ic("check") : i + 1}</span>${s}</li>`;
+// 做過的步驟可以點回去（「等一下」不行；讀謄本中不能回拍照）
+const canGo = (i, cur) => i !== 1 && i < cur && !(i === 0 && st.view?.stage === "extracting");
+const steps = (cur) => `<ol class="steps" aria-label="步驟，做過的可以點回去">${STEPS.map((s, i) => {
+  const go = canGo(i, cur);
+  const cls = (i < cur ? "done" : i === cur ? "now" : "") + (go ? " go" : "");
+  const inner = `<span class="n">${i < cur ? ic("check") : i + 1}</span><span class="lbl">${s}</span>`;
+  return `<li class="${cls}"${i === cur ? ' aria-current="step"' : ""}>${go ? `<button data-act="goStep" data-i="${i}" aria-label="回到${s}">${inner}</button>` : inner}</li>`;
 }).join("")}</ol>`;
 
 function thumbsHtml() {
@@ -504,12 +522,13 @@ function viewHtml() {
         <p class="say" style="font-size:20px">手機可以先放著。</p></div><div class="spacer"></div>`;
     case "ready": {
       const qs = questions();
-      const left = qs.length - st.q;
+      const left = qs.filter((q) => !(q.id in st.view.answers)).length; // 重拍後只剩核對題要重答
       return `${steps(stepOfQ(qs[st.q]))}<div class="spacer"></div><div class="mid">${mascot("talk", "big-mascot")}
         <p class="h1">${left === qs.length ? `有 ${left} 個問題要問你` : `還有 ${left} 個問題`}</p>
         <p class="say">可以用講的，也可以用按的。</p></div><div class="spacer"></div>${btn("start", "right", "開始回答", "pri")}`;
     }
     case "question": return questionHtml();
+    case "retake": return retakeHtml();
     case "done": return doneHtml();
     case "human":
       return `<div class="spacer"></div><div class="mid">${mascot("calm", "big-mascot")}
@@ -554,6 +573,7 @@ function doneHtml() {
   const dl = docs.map((d, i) => `<a class="btn pri" href="${esc(d.url)}" download="${esc(d.name)}">${ic("download")}${docs.length > 1 ? `下載第 ${i + 1} 份` : "下載同意書"}</a>`).join("");
   return `${steps(4)}${head}<div class="dl">${dl}</div>
     ${draft ? todoCard(todo) : ""}
+    ${draft && Array.isArray(v.retake) && v.retake.length ? btn("goStep", "camera", "回去重拍有問題的那一張", "", 'data-i="0"') : ""}
     <div class="card"><h2>接下來</h2><ul class="list">
       <li><span class="num">1</span>${ic("print")}<span>印出來</span></li>
       <li><span class="num">2</span>${ic("pen")}<span>甲方、乙方簽名蓋章</span></li>
@@ -625,24 +645,28 @@ function landHtml(l) {
     ${u ? `<button class="thumbbtn" data-act="zoom" data-src="${esc(u)}" aria-label="看謄本第 ${esc(l.page)} 頁的照片"><img src="${esc(u)}" alt="">看照片</button>` : ""}</div>`;
 }
 
+// 坐落在「鄉鎮市區」後面換行，不在詞中間斷開
+const fmtLoc = (v) => v.replace(/^(.+?[縣市])(.+?[鄉鎮市區])(.+)$/, "$1$2\n$3");
 function checkCardHtml(q) {
   const c = q.card;
   if (!c) return "";
   const rows = c.rows.map((r) => {
     const unclear = r.value.includes("看不清");
-    return `<div><dt>${esc(r.label)}</dt><dd${unclear ? ' class="unclear"' : ""}>${unclear ? ic("help") : ""}${esc(r.value)}</dd></div>`;
+    const cls = unclear ? "unclear" : r.label === "坐落" ? "" : "nw";
+    return `<div><dt>${esc(r.label)}</dt><dd class="${cls}">${unclear ? ic("help") : ""}${esc(r.label === "坐落" ? fmtLoc(r.value) : r.value)}</dd></div>`;
   }).join("");
+  const warn = c.warn.map((w) => `<p class="warn">${ic("info")}<span>${esc(w)}</span></p>`).join("");
   const u = c.page != null ? photoOf(c.page) : "";
-  return `<div class="card chk"><dl>${rows}</dl>
-    ${u ? `<button class="thumbbtn" data-act="zoom" data-src="${esc(u)}" aria-label="看謄本第 ${esc(c.page)} 頁的照片"><img src="${esc(u)}" alt="">看照片</button>` : ""}</div>`;
+  return `<div class="card chk"><dl>${rows}</dl>${warn}
+    ${u ? btn("zoom", "doc", `看謄本第 ${c.page} 張照片`, "photo soft", `data-src="${esc(u)}"`) : ""}</div>`;
 }
 
 function questionHtml() {
   const qs = questions(), q = qs[st.q], v = st.view;
   if (!q) return "";
-  const done = st.q + (st.sheet ? 1 : 0);
+  const done = st.q + (st.flash ? 1 : 0);
   const listening = st.mode === "listen" || st.mode === "rbListen";
-  const face = st.sheet ? "happy" : listening ? "listen" : "talk";
+  const face = st.flash ? "happy" : listening ? "listen" : "talk";
   const top = `${steps(stepOfQ(q))}<div class="top">${btn("back", "left", "", "back", 'aria-label="回上一步"')}${bar((done / qs.length) * 100)}</div>
     <div class="who">${mascot(face)}${bubble(q.text, `第 ${st.q + 1} 題，共 ${qs.length} 題・點這裡再聽一次`, q.legal ? "確認一下" : "")}</div>
     ${q.why ? `<p class="why">${ic("info")}<span>${esc(q.why)}</span></p>` : ""}`;
@@ -660,11 +684,14 @@ function questionHtml() {
     return `${top}<div class="mid"><p class="say">你講的是</p><div class="rb pop${said.length > 4 ? " long" : ""}">${esc(said)}</div><p class="h1">對嗎？</p></div>
       ${note}<div class="spacer"></div>${btn("rbYes", "check", "對", "pri")}${btn("rbNo", "left", "不對，再講一次")}`;
   }
-  const opts = q.main.map((o) => btn("ans", optIcon(q, o), o.label, "", `data-v="${esc(o.value)}"`)).join("");
-  return `${top}${lands}${heard}${note}
-    ${V.canListen ? btn("listen", "mic", "按一下，用講的", "pri") : ""}
+  const lit = (v) => (st.flash && st.flash.v === v ? "lit" : "");
+  const opts = q.main.map((o) => btn("ans", optIcon(q, o), o.label, lit(o.value), `data-v="${esc(o.value)}"`)).join("");
+  const said = st.flash ? `<p class="say center pop">記好了：${esc(st.flash.label)}</p>` : "";
+  return `${top}${lands}${heard}${note}<div class="spacer"></div>
+    <div class="dock answers">${said}
+    ${V.canListen && !st.flash ? btn("listen", "mic", "按一下，用講的", "pri") : ""}
     <div class="${q.stack ? "stack" : q.grid ? "grid" : "row"}">${opts}</div>
-    ${btn("ans", "help", q.unsure.label, "soft", 'data-v="unsure"')}`;
+    ${btn("ans", "help", q.unsure.label, `soft ${lit("unsure")}`, 'data-v="unsure"')}</div>`;
 }
 
 function devHtml() {
@@ -710,6 +737,7 @@ function showSheet(o) {
     ${btn(o.act, o.btnIcon || "right", o.label, "pri")}
     ${o.redo ? btn("redo", "left", "不對，重選", "soft") : ""}`;
   document.body.classList.add("sheet-open");
+  el.inert = false;
   void el.offsetWidth; // 先讓瀏覽器算一次位置，滑上來的動畫才會播；不用 requestAnimationFrame，避免收起後又被加回來
   el.classList.add("up");
   render();
@@ -718,6 +746,7 @@ function showSheet(o) {
 function hideSheet() {
   st.sheet = null;
   $("#sheet").classList.remove("up");
+  $("#sheet").inert = true; // 收起來的面板不能被鍵盤或螢幕閱讀器按到
   document.body.classList.remove("sheet-open");
 }
 
@@ -802,14 +831,17 @@ async function uploadPhoto(file) {
   }
   st.thumbs[page] = st.preview;
   if (!st.view.pages_done.includes(page)) st.view.pages_done.push(page);
+  render(); // 先讓他看到「夠亮、清楚」，再自動往下走（不用彈窗）
   if (r.all_pages_done) {
     st.view.stage = "extracting";
-    showSheet({ tone: "ok", title: "這張可以用", body: "謄本都拍好了。", act: "toReceived", label: "繼續" });
+    await sleep(1500);
+    if (st.screen === "photo" && st.result?.ok) ACT.toReceived();
     return;
   }
   const n = nextPage();
-  showSheet({ tone: "ok", title: "這張可以用", act: "photoNext", label: `拍第 ${n} 張`, btnIcon: "camera" });
   V.speak(SAY.next(n));
+  await sleep(1500);
+  if (st.screen === "photo" && st.result?.ok) ACT.photoNext();
 }
 
 $("#cam").addEventListener("change", (e) => {
@@ -870,7 +902,8 @@ function onHeard(v, transcript, readback) {
     st.heard = "";
     render();
     // 唸回確認後自動再聽一次「對／不對」；也可以直接按
-    V.speak(SAY.rb(labelOf(curQ(), v))).then(() => { if (st.mode === "readback" && st.pending?.v === v) startListen(); });
+    const cq = curQ(); // 期間只唸年數（「3 年」），年份每年會變，才有固定音檔
+    V.speak(SAY.rb(cq?.kind === "years" ? `${v} 年` : labelOf(cq, v))).then(() => { if (st.mode === "readback" && st.pending?.v === v) startListen(); });
     return;
   }
   if (v === "yes") submit(st.pending.v, "voice", st.pending.transcript);
@@ -902,12 +935,20 @@ async function submit(value, channel, transcript = "") {
     st.note = "沒有送出去，請再按一次。";
     return render();
   }
-  st.busy = false;
   st.pending = null; st.fails = 0; st.note = ""; st.heard = "";
   const qs = questions();
   const i = qs.findIndex((x) => x.id === q.id);
   if (i >= 0) st.q = i;
-  showSheet({ tone: "ok", title: `記好了：${labelOf(q, value)}`, act: "next", label: st.q < qs.length - 1 ? "繼續" : "完成", redo: true });
+  // 不用彈窗：按下的按鈕亮起、阿伯開心、寫「記好了」，停一下自動到下一題。按錯用左上角「回上一步」
+  const flash = { v: value, label: labelOf(q, value) };
+  st.flash = flash;
+  render();
+  await sleep(1000);
+  st.busy = false;
+  if (st.flash !== flash) return; // 這一秒內已經按了回上一步或跳到別的步驟
+  st.flash = null;
+  if (st.screen !== "question" || desk.open) return render();
+  ACT.next();
 }
 
 // ───── 服務台：按「問問題」用講的發問，阿伯從固定答案庫回答（app/agents/faq.py）
@@ -999,6 +1040,60 @@ async function deskListen() {
   deskAsk(text.trim(), "voice");
 }
 
+// ───── 回到某一步
+function goStep(i) {
+  V.cancelListen(); V.stop();
+  hideSheet();
+  st.mode = "wait"; st.pending = null; st.note = ""; st.heard = ""; st.flash = null;
+  const qs = questions();
+  if (i === 0) { go("retake", "back"); return V.speak(SAY.retake); }
+  if (i === 2 || i === 3) {
+    const at = qs.findIndex((q) => (i === 2 ? isCheckQ(q) : !isCheckQ(q)));
+    if (at < 0) return;
+    st.q = at;
+    go("question", "back");
+    return sayQuestion();
+  }
+  if (i === 4 && !qs.some((q) => !(q.id in st.view.answers))) go("done");
+}
+
+async function retakePage(page) {
+  if (st.busy) return;
+  st.busy = true;
+  let v = null;
+  try {
+    const res = await fetch(`${API}/retake`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ page }) });
+    if (res.ok) v = await res.json();
+  } catch { /* 下面處理 */ }
+  st.busy = false;
+  if (!v) { st.note = "現在沒辦法重拍，請等一下再試。"; return render(); }
+  st.note = "";
+  delete st.thumbs[page];
+  st.preview = null; st.result = null; st.q = 0; st.docWait = 0;
+  st.view = { ...st.view, ...v };
+  st.view.pages_done = Array.isArray(v.pages_done) ? v.pages_done : [];
+  st.page = page;
+  go("photo");
+  V.speak(SAY.shoot(page));
+}
+
+function retakeHtml() {
+  const v = st.view, n = v.pages_expected;
+  const sugg = Array.isArray(v.retake) ? v.retake.map(Number) : [];
+  const rows = Array.from({ length: n }, (_, k) => k + 1).map((p) => {
+    const u = photoOf(p);
+    return `<div class="land"><div class="txt"><b style="font-size:26px">第 ${p} 張</b>
+      ${sugg.includes(p) ? `<span class="area" style="color:var(--wt)">建議重拍：有地方看不清或不一樣</span>` : ""}</div>
+      ${u ? `<img src="${esc(u)}" alt="" style="width:64px;height:84px;object-fit:cover;border-radius:8px">` : ""}</div>
+      ${btn("retakePage", "camera", `重拍第 ${p} 張`, sugg.includes(p) ? "pri" : "", `data-p="${p}"`)}`;
+  }).join("");
+  return `${steps(4)}<div class="who">${mascot("talk")}${bubble("要重拍哪一張？", "重拍以後，要重新核對那幾筆地")}</div>
+    ${st.note ? `<div class="note">${esc(st.note)}</div>` : ""}
+    <div class="answers">${rows}</div><div class="spacer"></div>
+    <div class="dock">${btn("retakeCancel", "left", "不用了，回去", "soft")}</div>`;
+}
+
 // ───── 按鈕
 const ACT = {
   deskOpen: () => deskOpen(),
@@ -1020,6 +1115,7 @@ const ACT = {
     if (st.screen === "question") sayQuestion();
     else if (st.screen === "photo") V.speak(SAY.shoot(st.page));
     else if (st.screen === "intro") V.speak(SAY.intro(st.view.pages_expected));
+    else if (st.screen === "retake") V.speak(SAY.retake);
   },
   start: () => { st.mode = "wait"; go("question"); sayQuestion(); },
   listen: () => startListen(),
@@ -1039,9 +1135,12 @@ const ACT = {
     }
   },
   redo: () => { hideSheet(); render(); sayQuestion(); },
+  goStep: (el) => goStep(Number(el.dataset.i)),
+  retakePage: (el) => retakePage(Number(el.dataset.p)),
+  retakeCancel: () => { st.note = ""; route(); },
   back: () => {
     V.cancelListen(); V.stop();
-    st.mode = "wait"; st.pending = null; st.note = ""; st.heard = "";
+    st.mode = "wait"; st.pending = null; st.note = ""; st.heard = ""; st.flash = null; st.busy = false;
     if (st.q === 0) return go("ready", "back");
     st.q -= 1; go("question", "back"); sayQuestion();
   },
