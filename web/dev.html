@@ -347,15 +347,19 @@ function start() {
 }
 
 async function poll() {
+  const id = caseId; // 換案例後，舊案例晚回來的結果要丟掉（不然手機會被切回舊案例）
+  if (!id) return;
   let c, fv = null;
   try {
-    const r = await fetch(`../api/cases/${encodeURIComponent(caseId)}`, { cache: "no-store" });
-    if (!r.ok) { $("#stream").innerHTML = `<p class="empty">找不到案例 ${esc(caseId)}</p>`; clearInterval(timer); return; }
+    const r = await fetch(`../api/cases/${encodeURIComponent(id)}`, { cache: "no-store" });
+    if (id !== caseId) return;
+    if (!r.ok) { $("#stream").innerHTML = `<p class="empty">找不到案例 ${esc(id)}</p>`; clearInterval(timer); return; }
     c = await r.json();
     const f = await fetch(`../api/f/${c.farmer_token}`, { cache: "no-store" });
     if (f.ok) fv = await f.json();
   } catch { return; }
-  if (!token) {
+  if (id !== caseId || c.id !== caseId) return;
+  if (token !== c.farmer_token) {
     token = c.farmer_token;
     $("#phone").src = `farmer.html#t=${token}`;
     $("#openFarmer").href = `farmer.html#t=${token}`; $("#openFarmer").hidden = false;
@@ -434,8 +438,10 @@ async function runDemo() {
   try {
     say("一、建立案例", "幫一位地主開一個案子（假謄本 C02：一筆地、兩位地主共有）。農民只會收到一個專屬連結，不用帳號密碼。", "photo");
     const r = await fetch("../api/cases", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sample_id: "C02" }) });
-    location.hash = `case=${(await r.json()).id}`;
-    await until(() => token && findBtn((t) => t.startsWith("開始")));
+    const made = await r.json();
+    location.hash = `case=${made.id}`;
+    // 確定手機已經換成這個新案例，才開始操作
+    await until(() => token === made.farmer_token && fdoc()?.location.hash.includes(made.farmer_token) && findBtn((t) => t.startsWith("開始")));
     await hold(3500);
 
     say("二、阿伯先說明要做什麼", "高齡農民的畫面：大字、大按鈕、一次一件事，每句話都能聽（OpenAI 語音）。按「開始」。", "photo");
