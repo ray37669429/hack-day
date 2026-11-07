@@ -81,7 +81,7 @@ def test_full_flow_c03(client):
     # 別人在種 → 多一題租約；協助者處理過法律注意事項才能出正式版
     d = client.post(f"/api/cases/{cid}/documents").json()
     assert d["draft"] and any("租約" in m for m in d["missing"])
-    client.post(f"/api/f/{token}/answers", json={"question": "L-lease", "value": "yes"})
+    client.post(f"/api/f/{token}/answers", json={"question": "L-lease", "value": "no"})
     assert client.post(f"/api/cases/{cid}/legal/lease/resolve", json={"note": "已看過租約"}).status_code == 200
 
     d = client.post(f"/api/cases/{cid}/documents").json()

@@ -228,9 +228,10 @@ def missing(case: Case) -> list[str]:
         elif a[q].value == "unsure":
             out.append(f"農民對「{QUESTIONS[q][0]}」不確定")
     from .agents import legal
+    for x in legal.plan(case):  # 只算被選中要問農民的題目（含追問）
+        if x.question.id not in a:
+            out.append(f"農民還沒回答：{x.question.text}")
     for issue in legal.issues(case):
-        if issue.question and issue.question.id not in a:
-            out.append(f"農民還沒回答：{issue.question.text}")
         if issue.id not in case.legal_notes:
             out.append(f"法律注意事項未處理：{issue.title}")
     m = case.manual

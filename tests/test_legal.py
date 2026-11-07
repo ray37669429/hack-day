@@ -167,3 +167,70 @@ def test_bad_photo_checks(client):
     # 打不開的檔案 → checks 為空
     r = client.post(f"/api/f/{token}/photos", data={"page": "1"}, files={"file": ("x.jpg", b"not an image", "image/jpeg")})
     assert r.json()["checks"] == []
+
+
+# ───── 選題：打分、上限、追問
+
+def legal_ids(questions):
+    return [q["id"] for q in questions if q["legal"]]
+
+
+def test_ranked_by_score_and_capped(client, monkeypatch):
+    cid, token = ready_case(client, "C02")              # 共有 → coowner（55）
+    answer(client, token, "q2", "other")
+    r = answer(client, token, "q3", "承租").json()        # 承租 → lease（90）排第一
+    assert legal_ids(r["questions"]) == ["L-lease", "L-coowner"]
+    legal = client.get(f"/api/cases/{cid}").json()["legal"]
+    assert [i["id"] for i in legal] == ["lease", "coowner"]
+    assert legal[0]["score"] == 90 and "承租" in legal[0]["score_reason"]
+    assert all(i["asked"] for i in legal)
+
+    # 上限 1 題：只問分數最高的；沒問的仍要協助者處理，並寫出原因
+    monkeypatch.setenv("LEGAL_MAX_FARMER_QUESTIONS", "1")
+    assert legal_ids(client.get(f"/api/f/{token}").json()["questions"]) == ["L-lease"]
+    assert answer(client, token, "L-coowner", "yes").status_code == 400
+    helper = client.get(f"/api/cases/{cid}").json()
+    coowner = next(i for i in helper["legal"] if i["id"] == "coowner")
+    assert not coowner["asked"] and "沒有問農民" in coowner["selection"]
+    assert any(m.startswith("法律注意事項未處理：共有土地") for m in helper["missing"])
+    assert not any("其他地主" in m for m in helper["missing"])
+
+
+def test_answered_question_stays_selected(client, monkeypatch):
+    monkeypatch.setenv("LEGAL_MAX_FARMER_QUESTIONS", "1")
+    cid, token = ready_case(client, "C02")
+    assert legal_ids(client.get(f"/api/f/{token}").json()["questions"]) == ["L-coowner"]
+    answer(client, token, "L-coowner", "yes")
+    answer(client, token, "q2", "other")
+    r = answer(client, token, "q3", "承租").json()       # lease 分數較高，但已回答的 coowner 不會被換掉
+    assert legal_ids(r["questions"]) == ["L-coowner"]
+
+
+def test_followup_only_after_risky_answer(client):
+    cid, token = ready_case(client, "C01")
+    answer(client, token, "q2", "other")
+    r = answer(client, token, "L-lease", "no").json()
+    assert legal_ids(r["questions"]) == ["L-lease"]
+    r = answer(client, token, "L-lease", "yes").json()
+    assert legal_ids(r["questions"]) == ["L-lease", "L-lease-375"]
+    fu = r["questions"][-1]
+    assert fu["why"] == "因為你說有簽租約" and fu["legal"]
+    r = answer(client, token, "L-lease-375", "yes").json()
+    assert r["answers"]["L-lease-375"] == "是"
+    helper = client.get(f"/api/cases/{cid}").json()
+    lease = next(i for i in helper["legal"] if i["id"] == "lease")
+    assert lease["followup"] == {"question_id": "L-lease-375", "text": "這份租約，是三七五租約嗎？", "answer_label": "是"}
+    assert any("三七五" in t["text"] for t in helper["tasks"])
+    # 改答「沒有」→ 追問與它的答案都不再出現
+    r = answer(client, token, "L-lease", "no").json()
+    assert legal_ids(r["questions"]) == ["L-lease"] and "L-lease-375" not in r["answers"]
+
+
+def test_total_cap_includes_followups(client):
+    cid, token = ready_case(client, "C02")
+    answer(client, token, "q2", "other")
+    answer(client, token, "q3", "承租")
+    answer(client, token, "L-lease", "yes")                # 追問 375 → 3 題
+    r = answer(client, token, "L-coowner", "no").json()    # 共有追問會是第 4 題 → 超過總數上限 3
+    assert legal_ids(r["questions"]) == ["L-lease", "L-lease-375", "L-coowner"]
+    assert len(legal_ids(r["questions"])) <= 3

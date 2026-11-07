@@ -48,13 +48,22 @@ def _act(fn, *args, **kwargs):
 
 
 def legal_view(case: Case) -> list[dict]:
+    """法律注意事項（依分數高到低），附選題理由：為什麼問農民、為什麼沒問。"""
     out = []
+    sel = legal.selection(case)
     for i in legal.issues(case):
         qid = i.question.id if i.question else None
         a = case.answers.get(qid) if qid else None
+        s = sel[i.id]
+        fu = s["followup"]
+        fa = case.answers.get(fu.id) if fu else None
         note = case.legal_notes.get(i.id)
         out.append({"id": i.id, "title": i.title, "detail": i.detail, "reference": i.reference,
+                    "score": i.score, "score_reason": i.score_reason,
+                    "asked": s["asked"], "selection": s["reason"],
                     "question_id": qid, "answer_label": i.question.label(a.value) if a else None,
+                    "followup": {"question_id": fu.id, "text": fu.text,
+                                 "answer_label": fu.label(fa.value) if fa else None} if fu else None,
                     "resolved": note is not None, "note": note.note if note else ""})
     return out
 
@@ -81,7 +90,8 @@ def farmer_questions(case: Case) -> list[dict]:
 
 
 def farmer_answers(case: Case) -> dict[str, str]:
-    return {q: actions.answer_label(q, a.value) for q, a in case.answers.items()}
+    current = {q["id"] for q in farmer_questions(case)}  # 追問被取消後，舊答案不再顯示
+    return {q: actions.answer_label(q, a.value) for q, a in case.answers.items() if q in current}
 
 
 def latest_photos(case: Case) -> dict[int, Photo]:

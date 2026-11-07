@@ -20,8 +20,8 @@ def after_extraction(case: Case, flags: list[str]) -> None:
 
 def after_answer(case: Case, question: str, value: str) -> None:
     if question in legal.QUESTIONS:
-        if value in ("no", "unsure"):
-            q = legal.QUESTIONS[question]
+        q = legal.QUESTIONS[question]
+        if value in q.flag:  # 會產生風險的答案（例如租約題答「有」）才加任務
             issue = legal.issue_for_question(case, question)
             actions.add_task(case, ACTOR, f"農民對「{q.text}」回答「{q.label(value)}」，請聯絡確認"
                                           + (f"（法律注意事項：{issue.title}）" if issue else ""))
