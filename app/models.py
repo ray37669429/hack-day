@@ -19,6 +19,13 @@ QUESTIONS: dict[str, tuple[str, set[str]]] = {
 }
 ANSWER_LABEL = {"yes": "是", "no": "不是", "unsure": "我不確定", "self": "我自己", "other": "別人",
                 "承租": "承租", "託耕": "託耕", "輪耕": "輪耕", "分耕": "分耕"}
+# 農民端顯示用：題型、唸給農民聽的句子、選項順序（固定範本，不由 LLM 產生）
+QUESTION_UI: dict[str, dict] = {
+    "q1": {"kind": "yesno", "say": "這幾筆，是你的地嗎？請說，是，或是，不是。", "options": ["yes", "no", "unsure"]},
+    "q2": {"kind": "who", "say": "這些地，是誰在種？是你自己，還是別人？", "options": ["self", "other", "unsure"]},
+    "q3": {"kind": "cat", "say": "用什麼方式給人種？承租、託耕、輪耕，還是分耕？",
+           "options": ["承租", "託耕", "輪耕", "分耕", "unsure"]},
+}
 
 
 def now() -> datetime:
@@ -120,6 +127,13 @@ class Task(BaseModel):
     done: bool = False
 
 
+class LegalNote(BaseModel):
+    """協助者對某個法律注意事項的處理紀錄。系統不下法律結論，只記錄人怎麼處理。"""
+    by: str
+    note: str = ""
+    at: datetime = Field(default_factory=now)
+
+
 class Event(BaseModel):
     at: datetime = Field(default_factory=now)
     actor: str
@@ -138,6 +152,7 @@ class Case(BaseModel):
     ownerships: list[Ownership] = Field(default_factory=list)
     claims: list[FieldClaim] = Field(default_factory=list)
     answers: dict[str, FarmerAnswer] = Field(default_factory=dict)
+    legal_notes: dict[str, LegalNote] = Field(default_factory=dict)  # 法律注意事項 id -> 協助者處理紀錄
     manual: Manual = Field(default_factory=Manual)
     tasks: list[Task] = Field(default_factory=list)
     events: list[Event] = Field(default_factory=list)

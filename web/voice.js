@@ -13,21 +13,56 @@ const KW = {
   other: ["別人", "人家", "別的人", "其他人", "予人", "佮人", "租給", "給人", "租人"],
   self: ["我自己", "自己", "家己", "我"],
   承租: ["承租", "租", "稅"], 託耕: ["託耕", "託", "代耕", "代種"], 輪耕: ["輪耕", "輪"], 分耕: ["分耕", "分"],
+  // 「有沒有」類的題目（例如有沒有租約）：先找否定，再找「有」
+  haveNo: ["沒有", "沒", "無", "毋"],
+  have: ["有"],
 };
 const hit = (k, t) => KW[k].some((w) => t.includes(w));
+const clean = (raw) => String(raw ?? "").replace(/[\s，。！？、,.!?]/g, "");
 
-/** kind：yesno／who／cat。回傳答案代碼，聽不懂回傳 null。 */
+/** 選項文字是不是否定的說法（不是、沒有、不知道…），用來對應 yes／no。 */
+export const isNegative = (label) => /^(不|沒|無|毋)/.test(clean(label));
+
+/** kind：yesno／who／cat／have。回傳答案代碼，聽不懂回傳 null。 */
 export function match(kind, raw) {
-  const t = String(raw).replace(/[\s，。！？、,.!?]/g, "");
+  const t = clean(raw);
   if (!t) return null;
   if (hit("unsure", t)) return "unsure";
   if (kind === "yesno") return hit("no", t) ? "no" : hit("yes", t) ? "yes" : null;
+  if (kind === "have") return hit("haveNo", t) ? "no" : hit("have", t) ? "yes" : null;
   if (kind === "who") return hit("other", t) ? "other" : hit("self", t) ? "self" : null;
   if (kind === "cat") {
     const found = ["承租", "託耕", "輪耕", "分耕"].filter((c) => hit(c, t));
     return found.length === 1 ? found[0] : null;
   }
   return null;
+}
+
+/**
+ * 依題目的選項比對，回傳選項的 value，聽不懂回傳 null。
+ * q = { kind, options: [{ value, label }] }（options 含 unsure）。
+ * 順序：整句剛好等於某個選項文字 → 依 kind 的關鍵詞 → 句子裡只出現一個選項文字。
+ */
+export function matchOption(q, raw) {
+  const t = clean(raw);
+  if (!t) return null;
+  const opts = q.options || [];
+  const exact = opts.find((o) => clean(o.label) === t);
+  if (exact) return exact.value;
+  const code = match(q.kind, raw);
+  if (code) {
+    const byValue = opts.find((o) => o.value === code);
+    if (byValue) return byValue.value;
+    if (code === "unsure") return "unsure";
+    if (code === "yes" || code === "no") {
+      const main = opts.filter((o) => o.value !== "unsure");
+      const o = main.find((x) => isNegative(x.label) === (code === "no"));
+      if (o) return o.value;
+    }
+  }
+  if (hit("unsure", t)) return "unsure";
+  const found = opts.filter((o) => o.value !== "unsure" && o.label && t.includes(clean(o.label)));
+  return found.length === 1 ? found[0].value : null;
 }
 
 // ───── 朗讀

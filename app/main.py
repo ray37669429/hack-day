@@ -4,6 +4,7 @@ API 說明見 docs/backend-design.md 第 5 節。協助者端 MVP 只在本機�
 """
 from __future__ import annotations
 
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -17,8 +18,8 @@ from .config import load_env
 load_env()
 
 from . import actions, pipeline, store  # noqa: E402
-from .agents import document, intake, triage
-from .models import ANSWER_LABEL, QUESTIONS, Case, Channel, Manual, Stage
+from .agents import document, intake, legal, triage
+from .models import ANSWER_LABEL, QUESTION_UI, QUESTIONS, Case, Channel, Manual, Photo, Stage
 
 ROOT = Path(__file__).resolve().parent.parent
 app = FastAPI(title="農地同意書 MVP")
@@ -46,8 +47,50 @@ def _act(fn, *args, **kwargs):
         raise HTTPException(400, str(e))
 
 
+def legal_view(case: Case) -> list[dict]:
+    out = []
+    for i in legal.issues(case):
+        qid = i.question.id if i.question else None
+        a = case.answers.get(qid) if qid else None
+        note = case.legal_notes.get(i.id)
+        out.append({"id": i.id, "title": i.title, "detail": i.detail, "reference": i.reference,
+                    "question_id": qid, "answer_label": i.question.label(a.value) if a else None,
+                    "resolved": note is not None, "note": note.note if note else ""})
+    return out
+
+
 def helper_view(case: Case) -> dict:
-    return {**case.model_dump(mode="json"), "missing": actions.missing(case)}
+    return {**case.model_dump(mode="json"), "missing": actions.missing(case), "legal": legal_view(case)}
+
+
+# ───── 農民端資料（只放本人看得懂、且不含他人姓名、證號、地址的內容）
+
+def farmer_questions(case: Case) -> list[dict]:
+    """農民現在要回答的題目：q1、q2、q3，再接目前有效的法律注意事項題目。"""
+    out = []
+    for q, (text, _) in QUESTIONS.items():
+        ui = QUESTION_UI[q]
+        out.append({"id": q, "text": text, "say": ui["say"], "kind": ui["kind"],
+                    "options": [{"value": v, "label": ANSWER_LABEL[v]} for v in ui["options"]],
+                    "why": "", "legal": False})
+    for lq in legal.active_questions(case):
+        out.append({"id": lq.id, "text": lq.text, "say": lq.say, "kind": lq.kind,
+                    "options": [{"value": v, "label": label} for v, label in lq.options],
+                    "why": lq.why, "legal": True})
+    return out
+
+
+def farmer_answers(case: Case) -> dict[str, str]:
+    return {q: actions.answer_label(q, a.value) for q, a in case.answers.items()}
+
+
+def latest_photos(case: Case) -> dict[int, Photo]:
+    """每一頁最後一張合格的照片。"""
+    latest: dict[int, Photo] = {}
+    for p in case.photos:
+        if p.ok:
+            latest[p.page] = p
+    return latest
 
 
 # ───── 協助者
@@ -102,6 +145,20 @@ def put_manual(case_id: str, body: Manual):
     return helper_view(case)
 
 
+class Resolve(BaseModel):
+    note: str = ""
+
+
+@app.post("/api/cases/{case_id}/legal/{issue_id}/resolve")
+def resolve_legal(case_id: str, issue_id: str, body: Resolve):
+    case = _case(case_id)
+    if issue_id not in {i.id for i in legal.issues(case)}:
+        raise HTTPException(404, "目前沒有這個法律注意事項")
+    _act(actions.resolve_legal, case, "helper", issue_id, body.note)
+    store.save(case)
+    return helper_view(case)
+
+
 @app.post("/api/cases/{case_id}/documents")
 def make_documents(case_id: str):
     case = _case(case_id)
@@ -128,19 +185,36 @@ def get_document(case_id: str, name: str):
 def farmer_view(token: str):
     case = _farmer(token)
     lands = []
-    for p in case.parcels:
-        loc = next((c.value for c in case.claims if c.id == f"{p.pid}-location"), "")
-        lot = next((c.value for c in case.claims if c.id == f"{p.pid}-lot_no"), "")
-        lands.append({"pid": p.pid, "location": loc, "lot_no": lot})
-    good = sorted({p.page for p in case.photos if p.ok})
+    if case.stage in (Stage.reviewing, Stage.documented):
+        val = {c.id: c.value for c in case.claims}
+        for p in case.parcels:
+            lands.append({"pid": p.pid, "location": val.get(f"{p.pid}-location", ""),
+                          "lot_no": val.get(f"{p.pid}-lot_no", ""), "area_raw": val.get(f"{p.pid}-area_m2", ""),
+                          "area_unit": "平方公尺", "page": p.source.page})
+    latest = latest_photos(case)
     return {
         "stage": case.stage.value,
         "pages_expected": case.pages_expected,
-        "pages_done": good,
-        "lands": lands if case.stage in (Stage.reviewing, Stage.documented) else [],
-        "questions": [{"id": q, "text": t, "options": sorted(v)} for q, (t, v) in QUESTIONS.items()],
-        "answers": {q: ANSWER_LABEL[a.value] for q, a in case.answers.items()},
+        "pages_done": sorted(latest),
+        "lands": lands,
+        "photos": [{"page": n, "url": f"/api/f/{token}/photos/{n}"} for n in sorted(latest)],
+        "helper": {"name": os.getenv("HELPER_NAME") or "協助者", "phone": os.getenv("HELPER_PHONE", "")},
+        "questions": farmer_questions(case),
+        "answers": farmer_answers(case),
     }
+
+
+@app.get("/api/f/{token}/photos/{page}")
+def farmer_photo(token: str, page: int):
+    case = _farmer(token)
+    photo = latest_photos(case).get(page)
+    if photo is None or Path(photo.file).name != photo.file:
+        raise HTTPException(404, "找不到這一頁的照片")
+    photo_dir = (store.case_dir(case.id) / "photos").resolve()
+    path = (photo_dir / photo.file).resolve()
+    if path.parent != photo_dir or not path.is_file():
+        raise HTTPException(404, "找不到這一頁的照片")
+    return FileResponse(path)
 
 
 @app.post("/api/f/{token}/photos")
@@ -162,7 +236,13 @@ async def upload_photo(token: str, bg: BackgroundTasks, page: int = Form(...), f
     complete = actions.pages_ok(case)
     if complete:
         bg.add_task(pipeline.after_photos, case.id)
-    return {"ok": ok, "reason": reason, "brightness": round(b), "sharpness": round(s), "all_pages_done": complete}
+    if "打不開" in reason and b == 0 and s == 0:
+        checks = []
+    else:
+        checks = [{"id": "bright", "ok": b >= intake.MIN_BRIGHTNESS, "text": "夠亮" if b >= intake.MIN_BRIGHTNESS else "有點暗"},
+                  {"id": "sharp", "ok": s >= intake.MIN_SHARPNESS, "text": "清楚" if s >= intake.MIN_SHARPNESS else "有點糊"}]
+    return {"ok": ok, "reason": reason, "brightness": round(b), "sharpness": round(s), "all_pages_done": complete,
+            "checks": checks}
 
 
 class Answer(BaseModel):
@@ -178,7 +258,7 @@ def post_answer(token: str, body: Answer):
     _act(actions.answer, case, "farmer", body.question, body.value, body.channel, body.transcript)
     triage.after_answer(case, body.question, body.value)
     store.save(case)
-    return {"ok": True, "answers": {q: ANSWER_LABEL[a.value] for q, a in case.answers.items()}}
+    return {"ok": True, "answers": farmer_answers(case), "questions": farmer_questions(case)}
 
 
 # ───── 靜態檔：前端與假謄本（data/output 不對外）

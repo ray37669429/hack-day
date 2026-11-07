@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from . import store
 from .models import (ANSWER_LABEL, PENDING, QUESTIONS, Case, Channel, ClaimField, ClaimStatus, Event, Extraction,
-                     FarmerAnswer, FieldClaim, Manual, Ownership, Parcel, Photo, Source, Stage, Task)
+                     FarmerAnswer, FieldClaim, LegalNote, Manual, Ownership, Parcel, Photo, Source, Stage, Task)
 
 
 class ActionError(Exception):
@@ -117,17 +117,32 @@ def add_task(case: Case, actor: str, text: str) -> Task:
 # ───── 農民
 
 def answer(case: Case, actor: str, question: str, value: str, channel: Channel, transcript: str = "") -> FarmerAnswer:
+    """農民回答 q1–q3，或目前有效的法律注意事項題目（L-...）。"""
+    from .agents import legal  # 延遲匯入，避免循環
     _require(actor, "farmer")
-    if question not in QUESTIONS:
+    if question in QUESTIONS:
+        allowed, label = QUESTIONS[question][1], ANSWER_LABEL.get(value, value)
+    elif question in {q.id for q in legal.active_questions(case)}:
+        lq = legal.QUESTIONS[question]
+        allowed, label = lq.values(), lq.label(value)
+    else:
         raise ActionError(f"沒有這一題：{question}")
-    if value not in QUESTIONS[question][1]:
+    if value not in allowed:
         raise ActionError(f"第 {question} 題不能回答「{value}」")
     if channel == Channel.voice and not transcript.strip():
         raise ActionError("語音回答要附上辨識到的原文")
     a = FarmerAnswer(question=question, value=value, channel=channel, transcript=transcript.strip())
     case.answers[question] = a
-    _log(case, actor, "回答問題", f"{question}={ANSWER_LABEL[value]}（{'語音：' + a.transcript if channel == Channel.voice else '按鈕'}）")
+    _log(case, actor, "回答問題", f"{question}={label}（{'語音：' + a.transcript if channel == Channel.voice else '按鈕'}）")
     return a
+
+
+def answer_label(question: str, value: str) -> str:
+    """回答的顯示文字：法律題用該題選項文字，其他用 ANSWER_LABEL。"""
+    from .agents import legal
+    if question in legal.QUESTIONS:
+        return legal.QUESTIONS[question].label(value)
+    return ANSWER_LABEL.get(value, value)
 
 
 # ───── 協助者
@@ -162,6 +177,19 @@ def set_manual(case: Case, actor: str, manual: Manual) -> None:
         raise ActionError("人工欄位對到不存在的土地或所有權")
     case.manual = manual
     _log(case, actor, "填寫人工欄位", "公頃面積、權利面積、實施期間、耕作人")
+
+
+def resolve_legal(case: Case, actor: str, issue_id: str, note: str = "") -> LegalNote:
+    """協助者標記某個法律注意事項已處理（記錄怎麼處理）。系統與 agent 不能代為處理。"""
+    from .agents import legal
+    _require(actor, "helper")
+    issue = next((i for i in legal.issues(case) if i.id == issue_id), None)
+    if issue is None:
+        raise ActionError(f"目前沒有這個法律注意事項：{issue_id}")
+    n = LegalNote(by=actor, note=note.strip())
+    case.legal_notes[issue_id] = n
+    _log(case, actor, "處理法律注意事項", f"{issue.title}{'：' + n.note if n.note else ''}")
+    return n
 
 
 def record_documents(case: Case, actor: str, files: list[str], draft: bool) -> None:
@@ -199,6 +227,12 @@ def missing(case: Case) -> list[str]:
             out.append(f"農民還沒回答：{QUESTIONS[q][0]}")
         elif a[q].value == "unsure":
             out.append(f"農民對「{QUESTIONS[q][0]}」不確定")
+    from .agents import legal
+    for issue in legal.issues(case):
+        if issue.question and issue.question.id not in a:
+            out.append(f"農民還沒回答：{issue.question.text}")
+        if issue.id not in case.legal_notes:
+            out.append(f"法律注意事項未處理：{issue.title}")
     m = case.manual
     out += [f"未填：{p.pid} 本筆面積（公頃）" for p in case.parcels if not m.area_ha.get(p.pid)]
     out += [f"未填：{o.oid} 權利面積（公頃）" for o in case.ownerships if not m.right_area_ha.get(o.oid)]
