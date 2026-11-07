@@ -39,3 +39,8 @@ data/output/*
 !data/output/README.md
 # Office 開檔時的暫存鎖檔
 ~$*
+
+# ── AI 工具的個人設定（不共用）──
+.claude/settings.local.json
+CLAUDE.local.md
+AGENTS.override.md

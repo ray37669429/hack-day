@@ -44,6 +44,15 @@ git clone https://github.com/ray37669429/hack-day.git
 3. 小步 commit、常 push；合回 `main` 走 Pull Request。
 4. 金鑰只放 `.env`（照 `.env.example`），不要 commit。
 
+## AI 工具（Codex / Claude Code 都可以）
+
+| 檔案 | 誰讀 | 用途 |
+| --- | --- | --- |
+| [AGENTS.md](AGENTS.md) | Codex 直接讀；Claude Code 透過 CLAUDE.md 讀 | **唯一的規則來源**，要改規則改這裡 |
+| [CLAUDE.md](CLAUDE.md) | Claude Code | 只有一行 `@AGENTS.md` 引用，不另寫規則 |
+
+個人偏好（不想給隊友的設定）放 `CLAUDE.local.md` 或 `AGENTS.override.md`，這兩個不會進 git。
+
 ## 待辦 / 驗收
 
 - 待辦與時間表：[docs/TODO.md](docs/TODO.md)
