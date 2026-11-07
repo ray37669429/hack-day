@@ -270,8 +270,8 @@ footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--lin
           <span class="stamp" aria-hidden="true">本人<br>確認</span>
           <span class="tag t-farmer">農民</span>
           <h3>回答 3 題</h3>
-          <p>這是你的地嗎？誰在耕作？哪種耕作方式？一頁一題，大按鈕作答。</p>
-          <div class="out"><b>按鈕</b>是／不是／我不確定</div>
+          <p>這是你的地嗎？誰在耕作？哪種耕作方式？一頁一題，系統先唸題目，可以用講的或按大按鈕回答；講的答案會唸回確認。</p>
+          <div class="out"><b>回答</b>是／不是／我不確定（可說「著」「毋是」）</div>
           <div class="handoff">→ 按「我不確定」：自動轉給協助者</div>
         </article></div>
         <div class="cell l-agent"></div>
@@ -346,12 +346,13 @@ footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--lin
           <div class="hint">第 1 題，共 3 題</div>
           <div class="q">這是你的地嗎？</div>
           <div class="crop">謄本照片局部</div>
-          <div class="big" style="font-size:16px">霧峰區 ○○段 0123-0004</div>
-          <div class="spacer"></div>
+          <div class="big" style="font-size:16px">○○鄉 ○○段 0123-0004</div>
+          <div class="btn soft">♪ 再唸一次</div>
+          <div class="btn primary">● 按一下，用講的</div>
           <div class="btn-row"><div class="btn">✔ 是</div><div class="btn">✘ 不是</div></div>
           <div class="btn soft">？ 我不確定</div>
         </div>
-        <figcaption><b>③ 回答問題</b><br>一頁一題，認得出來就好</figcaption>
+        <figcaption><b>③ 回答問題</b><br>會唸題目，可以用講的</figcaption>
       </figure>
       <figure class="phone">
         <div class="device" aria-label="畫面四：簽名">
@@ -365,7 +366,7 @@ footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--lin
       </figure>
     </div>
     <div class="ui-rules" aria-label="介面規則">
-      <span>內文 ≥ 20px</span><span>按鈕高 ≥ 56px</span><span>圖示＋文字</span><span>一頁一題</span><span>只要點一下</span><span>每題都有「我不確定」</span><span>不用登入</span>
+      <span>內文 ≥ 20px</span><span>按鈕高 ≥ 56px</span><span>圖示＋文字</span><span>一頁一題</span><span>只要點一下</span><span>每題都有「我不確定」</span><span>每題會唸、可以用講的</span><span>不用登入</span>
     </div>
   </section>
 
@@ -422,6 +423,7 @@ footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--lin
         <h3 style="font-size:15px;margin-bottom:8px">這次做</h3>
         <ul class="do">
           <li>農民端手機網頁：拍照、回答 3 題</li>
+          <li>語音：預錄題目（國語＋台語）、國語語音回答＋唸回確認</li>
           <li>agent ①收件 ②擷取 ③核對 ④分派 ⑤文件</li>
           <li>協助者用 Excel 核對表</li>
           <li>產出土地清單 Excel 與同意書 Word</li>
@@ -433,7 +435,7 @@ footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--lin
         <ul class="dont">
           <li>LINE 機器人與 LINE 登入</li>
           <li>提醒 agent 與通知</li>
-          <li>語音朗讀、台語語音輸入</li>
+          <li>台語語音辨識、台語語音合成</li>
           <li>線上簽名</li>
           <li>真實謄本的個資處理流程</li>
         </ul>
