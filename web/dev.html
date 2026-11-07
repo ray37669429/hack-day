@@ -87,6 +87,24 @@ main { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(300px, 2
 .f.rejected { background: rgba(231,106,110,.22); color: #FA999C; }
 .f.unclear { background: rgba(236,154,60,.22); color: #FBB360; }
 .f.flagged { box-shadow: inset 0 0 0 1px var(--orange); }
+/* 地不多時：卡片撐滿，土地與每位地主各一欄，直接顯示值 */
+.objs.big { grid-template-columns: 1fr; gap: 8px; padding: 8px; }
+.objs.big.two { grid-template-rows: 1fr 1fr; }
+.bigobj { background: var(--panel2); border: 1px solid var(--line); border-radius: 4px; padding: 8px 12px; min-width: 0; min-height: 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 16px; align-content: start; }
+.bigobj .sec.land { grid-row: span var(--o); }
+.bigobj .sec.own { border-left: 1px dashed var(--line); padding-left: 14px; }
+.bigobj .sec.own + .sec.own { padding-top: 6px; border-top: 1px dashed var(--line); }
+.bigobj .sec { min-width: 0; }
+.bigobj h4 { margin: 0 0 6px; font-size: 16px; font-weight: 600; display: flex; gap: 8px; align-items: baseline; white-space: nowrap; }
+.bigobj h4 .id { font-family: var(--mono); color: var(--fg3); font-size: 12px; font-weight: 400; }
+.frow { display: grid; grid-template-columns: 3.4em minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--line2); }
+.frow:last-child { border-bottom: 0; }
+.frow .k { color: var(--fg3); font-size: 12px; }
+.frow .val { font-family: var(--mono); font-size: 16px; line-height: 1.35; overflow-wrap: anywhere; }
+.frow .val.bad { color: var(--orange); }
+.frow .f { font-size: 12px; line-height: 20px; }
+.bigobj .warnline { grid-column: 1 / -1; font-size: 12.5px; white-space: normal; }
 .warnline { color: var(--orange); font-size: 11px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* 事件串流：新的在底部，舊的從頂部淡出，不用捲動 */
@@ -260,8 +278,35 @@ function chips(c, target) {
     return `<span class="f ${st}${x.flags.length ? " flagged" : ""}" title="${esc(tip)}">${mark} ${esc(FIELD[x.field] || x.field)}</span>`;
   }).join("");
 }
+// 地不多（2 筆以內）：大卡片，每個欄位直接顯示值與狀態
+function fieldRows(c, target) {
+  return c.claims.filter((x) => x.target === target).map((x) => {
+    const st = !x.ai_value ? "unclear" : x.status;
+    const mark = !x.ai_value ? "? 看不清" : x.status === "confirmed" ? "✓ 已確認" : x.status === "rejected" ? "✕ 退回" : "! 待確認";
+    return `<div class="frow" title="${esc(`${x.id}｜第 ${x.source.page} 頁${x.flags.length ? "｜⚠ " + x.flags.join("；") : ""}`)}">
+      <span class="k">${esc(FIELD[x.field] || x.field)}</span><span class="val${x.ai_value ? "" : " bad"}">${esc(x.ai_value ? x.value : "（看不清）")}${x.field === "area_m2" && x.ai_value ? " m²" : ""}</span>
+      <span class="f ${st}${x.flags.length ? " flagged" : ""}">${mark}</span></div>`;
+  }).join("");
+}
+function bigObjsHtml(c) {
+  return c.parcels.map((p, i) => {
+    const owners = c.ownerships.filter((o) => o.pid === p.pid);
+    const warns = [...new Set(c.claims.filter((x) => x.target === p.pid || x.target.startsWith(p.pid + "-")).flatMap((x) => x.flags))];
+    const secs = [`<div class="sec land"><h4>土地 ${i + 1}<span class="id">${esc(p.pid)}</span></h4>${fieldRows(c, p.pid)}</div>`,
+      ...owners.map((o, k) => `<div class="sec own"><h4>地主 ${k + 1}<span class="id">${esc(o.oid)}</span></h4>${fieldRows(c, o.oid)}</div>`)];
+    return `<div class="bigobj" style="--o:${Math.max(1, owners.length)}">${secs.join("")}
+      ${warns.length ? `<div class="warnline" title="${esc(warns.join("；"))}">⚠ ${esc(warns.join("；"))}</div>` : ""}</div>`;
+  }).join("");
+}
+
 function objsHtml(c) {
+  const box = $("#objs");
+  // 大卡片要夠寬：最多那筆地的「土地＋地主」欄數 × 約 170px
+  const big = c.claims.length && c.parcels.length <= 2 && box.clientWidth >= 460; // 兩欄（土地｜地主）要夠寬
+  box.classList.toggle("big", Boolean(big));
+  box.classList.toggle("two", Boolean(big) && c.parcels.length === 2);
   if (!c.claims.length) return `<p class="empty">${c.stage === "extracting" ? "擷取中…" : "還沒有擷取結果（農民拍完照片後會出現）。"}</p>`;
+  if (big) return bigObjsHtml(c);
   const val = (id) => c.claims.find((x) => x.id === id)?.value || "（看不清）";
   return c.parcels.map((p, i) => {
     const warns = [...new Set(c.claims.filter((x) => x.target === p.pid || x.target.startsWith(p.pid + "-")).flatMap((x) => x.flags))];
@@ -382,7 +427,7 @@ async function poll() {
   $("#kpis").innerHTML = kpisHtml(c, fv);
   $("#graph").innerHTML = graphSvg(nodeState(c, fv));
   $("#objs").innerHTML = objsHtml(c);
-  $("#objCnt").textContent = `${c.parcels.length} 筆土地・${c.ownerships.length} 位地主・${c.claims.length} 個主張（滑鼠停在標籤上看值）`;
+  $("#objCnt").textContent = `${c.parcels.length} 筆土地・${c.ownerships.length} 位地主・${c.claims.length} 個主張`;
 }
 
 // ───── 自動展示：自己操作左邊的農民頁，跑完整個流程，右上說明卡逐步解說
