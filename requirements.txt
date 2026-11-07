@@ -1,4 +1,5 @@
-# 後端（app/）與工具（tools/）
+# Keep this file ASCII-only: pip on Traditional Chinese Windows (cp950) cannot read UTF-8 comments.
+# Backend (app/) and tools (tools/)
 fastapi>=0.110
 uvicorn>=0.28
 pydantic>=2.6
@@ -6,8 +7,8 @@ python-multipart>=0.0.9
 pillow>=10
 python-docx>=1.1
 openpyxl>=3.1
-openai>=3.0          # LLM harness（app/llm/）
-# 測試
+openai>=3.0          # LLM harness (app/llm/) and TTS (tools/gen_tts.py --engine openai)
+# Tests
 httpx>=0.27
 pytest>=8
-# 語音合成另外安裝，見 tools/gen_tts.py
+# Local speech synthesis is installed separately, see tools/gen_tts.py

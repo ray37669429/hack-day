@@ -297,4 +297,4 @@ app.mount("/data/samples", StaticFiles(directory=ROOT / "data" / "samples"), nam
 
 @app.get("/")
 def index():
-    return RedirectResponse("/web/prototype.html")
+    return RedirectResponse("/web/dev.html")  # 首頁＝Agent 工作台（展示用）
