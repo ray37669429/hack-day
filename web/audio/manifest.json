@@ -2,191 +2,233 @@
   "items": {
     "q1": {
       "files": {
-        "zh": "zh/q1.wav"
+        "zh": "zh/q1.wav",
+        "nan": "nan/q1.wav"
       },
       "zh_text": "這幾筆，是你的地嗎？請說，是，或是，不是。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "q2": {
       "files": {
-        "zh": "zh/q2.wav"
+        "zh": "zh/q2.wav",
+        "nan": "nan/q2.wav"
       },
       "zh_text": "這些地，是誰在種？是你自己，還是別人？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "q3": {
       "files": {
-        "zh": "zh/q3.wav"
+        "zh": "zh/q3.wav",
+        "nan": "nan/q3.wav"
       },
       "zh_text": "用什麼方式給人種？承租、託耕、輪耕，還是分耕？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "retry": {
       "files": {
-        "zh": "zh/retry.wav"
+        "zh": "zh/retry.wav",
+        "nan": "nan/retry.wav"
       },
       "zh_text": "我沒聽清楚，請再講一次。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "use_buttons": {
       "files": {
-        "zh": "zh/use_buttons.wav"
+        "zh": "zh/use_buttons.wav",
+        "nan": "nan/use_buttons.wav"
       },
       "zh_text": "我沒聽清楚，請按下面的按鈕。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_yes": {
       "files": {
-        "zh": "zh/rb_yes.wav"
+        "zh": "zh/rb_yes.wav",
+        "nan": "nan/rb_yes.wav"
       },
       "zh_text": "你講，是，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_no": {
       "files": {
-        "zh": "zh/rb_no.wav"
+        "zh": "zh/rb_no.wav",
+        "nan": "nan/rb_no.wav"
       },
       "zh_text": "你講，不是，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_unsure": {
       "files": {
-        "zh": "zh/rb_unsure.wav"
+        "zh": "zh/rb_unsure.wav",
+        "nan": "nan/rb_unsure.wav"
       },
       "zh_text": "你講，我不確定，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_self": {
       "files": {
-        "zh": "zh/rb_self.wav"
+        "zh": "zh/rb_self.wav",
+        "nan": "nan/rb_self.wav"
       },
       "zh_text": "你講，我自己，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_other": {
       "files": {
-        "zh": "zh/rb_other.wav"
+        "zh": "zh/rb_other.wav",
+        "nan": "nan/rb_other.wav"
       },
       "zh_text": "你講，別人，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_lease": {
       "files": {
-        "zh": "zh/rb_lease.wav"
+        "zh": "zh/rb_lease.wav",
+        "nan": "nan/rb_lease.wav"
       },
       "zh_text": "你講，承租，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_entrust": {
       "files": {
-        "zh": "zh/rb_entrust.wav"
+        "zh": "zh/rb_entrust.wav",
+        "nan": "nan/rb_entrust.wav"
       },
       "zh_text": "你講，託耕，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_rotate": {
       "files": {
-        "zh": "zh/rb_rotate.wav"
+        "zh": "zh/rb_rotate.wav",
+        "nan": "nan/rb_rotate.wav"
       },
       "zh_text": "你講，輪耕，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_split": {
       "files": {
-        "zh": "zh/rb_split.wav"
+        "zh": "zh/rb_split.wav",
+        "nan": "nan/rb_split.wav"
       },
       "zh_text": "你講，分耕，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "again": {
       "files": {
-        "zh": "zh/again.wav"
+        "zh": "zh/again.wav",
+        "nan": "nan/again.wav"
       },
       "zh_text": "好，請再回答一次。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "photo_dark": {
       "files": {
-        "zh": "zh/photo_dark.wav"
+        "zh": "zh/photo_dark.wav",
+        "nan": "nan/photo_dark.wav"
       },
       "zh_text": "照片有點暗，請到亮一點的地方再拍一次。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "photo_blur": {
       "files": {
-        "zh": "zh/photo_blur.wav"
+        "zh": "zh/photo_blur.wav",
+        "nan": "nan/photo_blur.wav"
       },
       "zh_text": "照片有點糊，請拿穩手機，再拍一次。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "photo_next2": {
       "files": {
-        "zh": "zh/photo_next2.wav"
+        "zh": "zh/photo_next2.wav",
+        "nan": "nan/photo_next2.wav"
       },
       "zh_text": "很好。請拍第 2 張。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "photo_next3": {
       "files": {
-        "zh": "zh/photo_next3.wav"
+        "zh": "zh/photo_next3.wav",
+        "nan": "nan/photo_next3.wav"
       },
       "zh_text": "很好。請拍第 3 張。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "received": {
       "files": {
-        "zh": "zh/received.wav"
+        "zh": "zh/received.wav",
+        "nan": "nan/received.wav"
       },
       "zh_text": "收到了。接下來不用做事，好了會請你回答幾個問題。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "done": {
       "files": {
-        "zh": "zh/done.wav"
+        "zh": "zh/done.wav",
+        "nan": "nan/done.wav"
       },
       "zh_text": "謝謝你，回答完了。同意書準備好以後，協助者會跟你約時間，帶印章來簽名。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     }
   }

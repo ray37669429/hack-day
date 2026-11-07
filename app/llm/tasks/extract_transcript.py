@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict
 from ...models import ExOwnership, ExParcel, ExPending, Extraction, PENDING, Source
 from ..base import ImageInput, Task
 
-PROMPT_VERSION = "extract-v1"
+PROMPT_VERSION = "extract-v2"  # v2：遮罩星號用半形、姓名保留遮罩
 
 SYSTEM = f"""你是土地登記謄本的轉錄員。你的工作是把照片上印的字「照抄」成結構化資料，給協助者逐欄核對。
 
@@ -21,7 +21,7 @@ SYSTEM = f"""你是土地登記謄本的轉錄員。你的工作是把照片上�
 3. 段名要完整抄，注意相似段名（例如「示範段」與「示範一段」是不同的段）。小段沒有就填空字串。
 4. 面積只抄數字（area_raw），去掉星號與「平方公尺」，保留小數與千分位逗號都可以。
 5. 權利範圍照抄（share_raw），例如「全部 1分之1」「2分之1」，去掉星號。
-6. 統一編號照原樣抄，遮蔽用的星號要保留，例如 A12345****。
+6. 統一編號、所有權人姓名照原樣抄，遮蔽用的星號要保留並用半形「*」，例如 A12345****、吳**。
 7. 每筆土地依出現順序編 parcel_id：P1、P2…。所有權部要對到它所屬的土地；「續次頁／接前頁」是同一筆土地。
 8. source 填資料所在照片的檔名與頁碼（照片前會標示）。
 9. 不要輸出照片上沒有的土地或所有權人。"""
@@ -80,8 +80,13 @@ SHARE_RE = re.compile(r"\d+\s*分之\s*\d+")
 ID_RE = re.compile(r"^[A-Z][0-9*]{9}$")
 
 
+def _star(s: str) -> str:
+    """全形星號、全形空白統一成半形（謄本的遮罩與補位都用星號）。"""
+    return s.replace("＊", "*").replace("　", " ").strip()
+
+
 def _clean(s: str) -> str:
-    return s.replace("*", "").strip()
+    return _star(s).replace("*", "").strip()
 
 
 def clean_area(s: str) -> str:
@@ -131,14 +136,14 @@ def postprocess(out: LExtraction, images: list[ImageInput]) -> tuple[Extraction,
             problems.append(f"第 {i} 筆所有權對到不存在的土地 {o.parcel_id}")
             continue
         share = clean_share(o.share_raw) if _clean(o.share_raw) != PENDING else PENDING
-        idm = o.id_masked.strip()
+        idm = _star(o.id_masked)
         if share != PENDING and not SHARE_RE.search(share):
             problems.append(f"{o.parcel_id} 第 {i} 筆權利範圍格式不對；看不清請填{PENDING}")
         if idm != PENDING and not ID_RE.match(idm):
             problems.append(f"{o.parcel_id} 第 {i} 筆統一編號格式不對（應像 A12345****）")
         check_source(o.source, f"{o.parcel_id} 第 {i} 筆所有權")
         p = by_pid[o.parcel_id]
-        owners.append(ExOwnership(parcel_id=o.parcel_id, section=p.section, lot_no=p.lot_no, owner=_clean(o.owner),
+        owners.append(ExOwnership(parcel_id=o.parcel_id, section=p.section, lot_no=p.lot_no, owner=_star(o.owner),
                                   id_masked=idm, share_raw=share, source=Source(**o.source.model_dump())))
     for p in parcels:
         if not any(o.parcel_id == p.parcel_id for o in owners):

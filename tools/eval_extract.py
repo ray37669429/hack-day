@@ -4,6 +4,7 @@
     set LLM_PROVIDER=record & .venv\Scripts\python tools/eval_extract.py   # 跑真的模型並錄下回應
     set LLM_PROVIDER=replay & .venv\Scripts\python tools/eval_extract.py   # 用錄好的回應重播，不花錢
     .venv\Scripts\python tools/eval_extract.py --clean            # 用乾淨掃描頁，不用模擬手機照片
+    .venv\Scripts\python tools/eval_extract.py --raw R01          # 真實（已遮罩）謄本：data/raw/R01/cases.json，不進 git
 
 結果寫到 data/output/evals/。有任何「猜測」時結束代碼為 1。
 """
@@ -40,14 +41,23 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--cases", nargs="*", default=["C01", "C02", "C03"])
     ap.add_argument("--clean", action="store_true")
+    ap.add_argument("--raw", help="data/raw/ 底下的資料夾，內含 cases.json")
     args = ap.parse_args()
+
+    if args.raw:
+        raw_dir = ROOT / "data" / "raw" / args.raw
+        spec = json.loads((raw_dir / "cases.json").read_text(encoding="utf-8"))["cases"]
+        cases = {cid: ([ImageInput(f"第 {i} 頁，檔名 {f}", raw_dir / f) for i, f in enumerate(c["images"], 1)], c["truth"])
+                 for cid, c in spec.items()}
+    else:
+        cases = {cid: (case_images(cid, args.clean), json.loads((SAMPLES / cid / "answer.json").read_text(encoding="utf-8")))
+                 for cid in args.cases}
 
     provider = providers.get()
     results = {}
-    for cid in args.cases:
-        truth = json.loads((SAMPLES / cid / "answer.json").read_text(encoding="utf-8"))
+    for cid, (imgs, truth) in cases.items():
         try:
-            r = harness.run(TASK, provider, case_images(cid, args.clean))
+            r = harness.run(TASK, provider, imgs)
             rep = score(truth, r.value)
             rep["attempts"] = r.attempts
             rep["tokens"] = sum(x.input_tokens + x.output_tokens for x in r.responses)
@@ -64,7 +74,7 @@ def main() -> int:
 
     out = ROOT / "data" / "output" / "evals"
     out.mkdir(parents=True, exist_ok=True)
-    path = out / f"{datetime.now():%Y%m%d-%H%M%S}_{TASK.prompt_version}_{provider.name}.json"
+    path = out / f"{datetime.now():%Y%m%d-%H%M%S}_{TASK.prompt_version}_{provider.name}{'_' + args.raw if args.raw else ''}.json"
     path.write_text(json.dumps({"task": TASK.name, "prompt_version": TASK.prompt_version, "provider": provider.name,
                                 "results": results}, ensure_ascii=False, indent=2), encoding="utf-8")
     print("結果：", path)

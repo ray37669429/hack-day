@@ -2,8 +2,9 @@
 
 設定（.env）：
     OPENAI_API_KEY=...
-    OPENAI_MODEL=gpt-6-astra          # 預設旗艦模型；省錢可改 gpt-6-luna
-    OPENAI_REASONING_EFFORT=high      # 擷取準確度優先
+    OPENAI_MODEL=gpt-6-astra          # OpenAI 最強的模型（2026-11-07 模型頁）
+    OPENAI_REASONING_EFFORT=xhigh     # low | medium | high | xhigh | max；擷取準確度優先
+    OPENAI_IMAGE_DETAIL=original      # low | high | original | auto；original 送原始解析度，細字（西/四）較不易認錯
 """
 from __future__ import annotations
 
@@ -16,14 +17,14 @@ from PIL import Image, ImageOps
 
 from .base import LLMRefusal, LLMRequest, LLMResponse, LLMUnavailable
 
-MAX_SIDE = 2400  # 手機照片先縮小，謄本文字仍清楚，也省流量
+MAX_SIDE = 4000  # 只擋超大照片；一般手機照片保留原始解析度
 
 
 def encode_image(path) -> str:
     img = ImageOps.exif_transpose(Image.open(path)).convert("RGB")
     img.thumbnail((MAX_SIDE, MAX_SIDE))
     buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=90)
+    img.save(buf, format="JPEG", quality=95)
     return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
 
@@ -32,14 +33,15 @@ class OpenAIProvider:
 
     def __init__(self, model: str | None = None, effort: str | None = None, client: openai.OpenAI | None = None):
         self.model = model or os.getenv("OPENAI_MODEL", "gpt-6-astra")
-        self.effort = effort or os.getenv("OPENAI_REASONING_EFFORT", "high")
+        self.effort = effort or os.getenv("OPENAI_REASONING_EFFORT", "xhigh")
+        self.detail = os.getenv("OPENAI_IMAGE_DETAIL", "original")
         self.client = client or openai.OpenAI(max_retries=3, timeout=180)  # SDK 會自動重試 429、5xx、連線錯誤
 
     def build_input(self, req: LLMRequest) -> list[dict]:
         content: list[dict] = []
         for img in req.images:
             content.append({"type": "input_text", "text": img.label})
-            content.append({"type": "input_image", "image_url": encode_image(img.path), "detail": "high"})
+            content.append({"type": "input_image", "image_url": encode_image(img.path), "detail": self.detail})
         content.append({"type": "input_text", "text": req.text})
         return [{"role": "system", "content": req.system}, {"role": "user", "content": content}]
 

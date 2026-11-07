@@ -3,15 +3,18 @@
 產出：web/audio/zh/<id>.wav、web/audio/nan/<id>.wav、web/audio/manifest.json
 測試台（web/prototype.html）會讀 manifest.json，有音檔就播音檔，沒有就退回瀏覽器內建語音。
 
-兩種引擎：
-  local  本機跑開源版 Qwen3-TTS（需要 NVIDIA 顯示卡）。**只產生國語**：開源版沒有閩南語聲音。
-  api    呼叫阿里雲 qwen3-tts-flash。閩南語依官方文件只在中國（北京）區域。
+三種引擎：
+  local      本機跑開源版 Qwen3-TTS（需要 NVIDIA 顯示卡）。**只產生國語**：開源版沒有閩南語聲音。
+  cosyvoice  本機跑 Fun-CosyVoice3-0.5B（需要 NVIDIA 顯示卡）。**只產生台語**（閩南話 instruct）。
+  api        呼叫阿里雲 qwen3-tts-flash。閩南語依官方文件只在中國（北京）區域。
 
 用法：
     python tools/gen_tts.py --dry-run                 # 只列出句子
     <本機環境的 python> tools/gen_tts.py --engine local --only q1   # 本機試一句
     <本機環境的 python> tools/gen_tts.py --engine local             # 本機產生全部國語
     python tools/gen_tts.py --engine api              # 雲端產生國語＋台語
+    <CosyVoice 環境的 python> tools/gen_tts.py --engine cosyvoice --lang nan --only q1   # 台語試一句
+    <CosyVoice 環境的 python> tools/gen_tts.py --engine cosyvoice --lang nan             # 產生全部台語
 
 本機環境（在這台電腦已建好）：
     C:\\Users\\Ray\\qwen3-tts\\venv\\Scripts\\python.exe
@@ -19,11 +22,17 @@
               venv\\Scripts\\python -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
               venv\\Scripts\\python -m pip install qwen-tts soundfile
 
+CosyVoice 環境（在這台電腦已建好，模型在 <repo>\\pretrained_models\\Fun-CosyVoice3-0.5B）：
+    C:\\Users\\Ray\\cosyvoice\\venv\\Scripts\\python.exe
+    Windows 請先設 PYTHONIOENCODING=utf-8。每句約 7–15 秒。
+
 設定（.env，不要 commit）：
     # 本機
     QWEN_LOCAL_MODEL=Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
     QWEN_LOCAL_SPEAKER=Serena          # 溫和女聲；低沉男聲可用 Uncle_Fu
     QWEN_LOCAL_INSTRUCT=用溫和、清楚、稍慢的語氣說，像在跟家裡的長輩說話
+    # CosyVoice（台語）
+    COSYVOICE_REPO=C:\\Users\\Ray\\cosyvoice
     # 雲端
     DASHSCOPE_API_KEY=...
     DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/api/v1
@@ -86,6 +95,35 @@ class LocalEngine:
         sf.write(str(path), wavs[0], sr)
 
 
+class CosyVoiceEngine:
+    """本機 Fun-CosyVoice3-0.5B，用「请用闽南话表达」instruct 產生台語。"""
+    langs = ("nan",)
+    instruct = "You are a helpful assistant. 请用闽南话表达。<|endofprompt|>"
+    prompt_wav = "./asset/zero_shot_prompt.wav"
+
+    def __init__(self) -> None:
+        repo = os.getenv("COSYVOICE_REPO", r"C:\Users\Ray\cosyvoice")
+        if not Path(repo).is_dir():
+            raise RuntimeError(f"找不到 CosyVoice 原始碼：{repo}（可用 COSYVOICE_REPO 指定）")
+        os.chdir(repo)  # CosyVoice 用相對路徑讀模型與參考音檔；AUDIO 是絕對路徑，不受影響
+        sys.path[:0] = [repo, os.path.join(repo, "third_party", "Matcha-TTS")]
+        from cosyvoice.cli.cosyvoice import AutoModel
+
+        self.model_id = "Fun-CosyVoice3-0.5B"
+        print(f"載入 {self.model_id}…")
+        self.model = AutoModel(model_dir=f"pretrained_models/{self.model_id}")
+        self.voice = {"nan": "zero_shot_prompt+minnan-instruct"}
+
+    def synth(self, text: str, lang: str, path: Path) -> None:
+        import soundfile as sf
+        import torch
+
+        chunks = [j["tts_speech"] for j in self.model.inference_instruct2(
+            text, self.instruct, self.prompt_wav, stream=False)]
+        wav = torch.cat(chunks, dim=1).squeeze(0).cpu().numpy()
+        sf.write(str(path), wav, self.model.sample_rate, subtype="PCM_16")  # 與國語音檔同格式，檔案小一半
+
+
 class ApiEngine:
     """阿里雲 qwen3-tts-flash（尚未用真實金鑰測試，第一次請先 --only q1）。"""
     langs = ("zh", "nan")
@@ -120,7 +158,7 @@ class ApiEngine:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--engine", choices=["local", "api"], default=os.getenv("QWEN_TTS_ENGINE", "local"))
+    ap.add_argument("--engine", choices=["local", "cosyvoice", "api"], default=os.getenv("QWEN_TTS_ENGINE", "local"))
     ap.add_argument("--lang", choices=["zh", "nan", "all"], default="all")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--only", help="只產生某個 id，例如 q1")
@@ -138,11 +176,11 @@ def main() -> int:
                 print(f"[{lang}] {p['id']}: {p[lang]}")
         return 0
 
-    engine = LocalEngine() if args.engine == "local" else ApiEngine()
+    engine = {"local": LocalEngine, "cosyvoice": CosyVoiceEngine, "api": ApiEngine}[args.engine]()
     langs = [l for l in wanted if l in engine.langs]
     skipped = [l for l in wanted if l not in engine.langs]
     if skipped:
-        print(f"注意：{args.engine} 引擎不支援 {skipped}，略過（開源版沒有閩南語聲音）")
+        print(f"注意：{args.engine} 引擎不支援 {skipped}，略過")
 
     manifest_path = AUDIO / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {"items": {}}

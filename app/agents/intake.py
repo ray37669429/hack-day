@@ -1,4 +1,7 @@
-"""① 收件 agent：照片品質檢查（亮度與清晰度）。門檻與 web/prototype.html 相同，已用假謄本校正。"""
+"""① 收件 agent：照片品質檢查（亮度與清晰度）。門檻與 web/prototype.html 相同。
+
+清晰度門檻依真實照片校正（2026-11-07）：清楚的手機照約 520–550、手震模糊的約 150、假謄本壞照片約 4。
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -6,7 +9,7 @@ from pathlib import Path
 from PIL import Image, ImageOps
 
 MIN_BRIGHTNESS = 90
-MIN_SHARPNESS = 60
+MIN_SHARPNESS = 250
 WIDTH = 320
 
 

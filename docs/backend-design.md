@@ -96,9 +96,9 @@ flowchart LR
 
 | Agent | 檔案 | 觸發 | 做什麼 |
 | --- | --- | --- | --- |
-| ① 收件 | `agents/intake.py` | 上傳照片時（同步） | 亮度 ≥ 90、清晰度 ≥ 60 才通過；門檻與測試台相同，已用假謄本校正 |
+| ① 收件 | `agents/intake.py` | 上傳照片時（同步） | 亮度 ≥ 90、清晰度 ≥ 250 才通過；門檻與測試台相同，依真實照片校正（清楚約 520–550、模糊約 150） |
 | ② 擷取 | `agents/extract.py` | 照片收齊（背景） | 兩種引擎：`oracle` 讀假謄本答案檔；`vision` 透過 LLM harness 呼叫 OpenAI（見 [llm-harness.md](llm-harness.md)），輸出格式與答案檔相同 |
-| ③ 核對 | `agents/check.py` | 擷取完成 | 地號格式、同地號不同段、持分加總、看不清的欄位 |
+| ③ 核對 | `agents/check.py` | 擷取完成 | 段名比對內政部官方清單（`app/refdata/`）、地號格式、同地號不同段、持分加總、看不清的欄位 |
 | ④ 分派 | `agents/triage.py` | 核對完成 | 謄本欄位全部給協助者；3 題給農民；農民答「不是」「不確定」時加任務 |
 | ⑤ 文件 | `agents/document.py` | 協助者按「產生」 | 依送出條件出正式版或草稿，呼叫 `tools/make_agreement.py` |
 

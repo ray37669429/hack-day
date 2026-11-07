@@ -129,3 +129,22 @@ def test_vision_engine_end_to_end_claims_stay_pending(monkeypatch):
     bad = run_case(ScriptedProvider(["not json", "not json"]))
     assert bad["stage"] == "needs_human"                      # 兩次都失敗 → 轉人工
     assert any("自動處理失敗" in t["text"] for t in bad["tasks"])
+
+
+def test_fullwidth_stars_and_masked_names_are_normalized():
+    out = json.loads(model_output("C01"))
+    out["ownerships"][0]["owner"] = "吳＊＊"
+    out["ownerships"][0]["id_masked"] = "A12345＊＊＊＊"
+    out["ownerships"][1]["owner"] = "吳＊＊"
+    out["ownerships"][1]["id_masked"] = "A12345＊＊＊＊"
+    r = harness.run(TASK, ScriptedProvider([json.dumps(out, ensure_ascii=False)]), images("C01"))
+    assert r.value.ownerships[0].owner == "吳**"
+    assert r.value.ownerships[0].id_masked == "A12345****"
+
+
+def test_blurry_real_world_threshold():
+    from app.agents.intake import check
+    ok, reason, _, sharp = check(SAMPLES / "C03" / "photo_page1_bad.jpg")
+    assert not ok and sharp < 250
+    ok, _, _, sharp = check(SAMPLES / "C01" / "photo_page1.jpg")
+    assert ok and sharp >= 250

@@ -19,8 +19,9 @@ def after_photos(case_id: str) -> None:
     try:
         latest = {p.page: p.file for p in case.photos if p.ok}  # 同一頁拍多次時取最後一張合格的
         photos = [(page, store.case_dir(case.id) / "photos" / latest[page]) for page in sorted(latest)]
-        actions.add_extraction(case, "agent:extract", extract.run(case, photos))
-        flags = check.run(case)
+        ex = extract.run(case, photos)
+        actions.add_extraction(case, "agent:extract", ex)
+        flags = check.run(case, ex)
         triage.after_extraction(case, flags)
         actions.set_stage(case, "system", Stage.reviewing)
     except Exception as e:  # agent 失敗：標記並交給人

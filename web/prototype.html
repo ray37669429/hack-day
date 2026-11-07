@@ -453,7 +453,7 @@ td input, .field input { width: 100%; min-width: 110px; border: 1px solid var(--
     const sharp = s2 / n - (s / n) ** 2;
     return { mean, sharp };
   }
-  const MIN_MEAN = 90, MIN_SHARP = 60;
+  const MIN_MEAN = 90, MIN_SHARP = 250; // 依真實照片校正：清楚約 520–550、手震模糊約 150
   async function takePhoto(src, label) {
     if (st.step !== "photo") return;
     st.preview = src; st.photoMsg = "檢查中…"; st.photoBad = false; renderScreen();

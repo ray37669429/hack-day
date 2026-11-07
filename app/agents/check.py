@@ -5,7 +5,8 @@ import re
 from fractions import Fraction
 
 from .. import actions
-from ..models import Case, ClaimField
+from ..models import Case, ClaimField, Extraction
+from ..refdata.sections import lookup
 
 ACTOR = "agent:check"
 LOT_RE = re.compile(r"^\d{4}-\d{4}$")
@@ -20,8 +21,14 @@ def parse_share(text: str) -> Fraction | None:
     return Fraction(int(m.group(2)), int(m.group(1)))
 
 
-def run(case: Case) -> list[str]:
+def run(case: Case, ex: Extraction | None = None) -> list[str]:
+    """ex：擷取 agent 的原始結果（有縣、鄉、段分開的欄位），用來比對官方段名清單。"""
     found: list[str] = []
+    for p in (ex.parcels if ex else []):
+        r = lookup(p.county, p.township, p.section, p.subsection)
+        if not r.found and not r.skipped:
+            actions.add_flag(case, ACTOR, f"{p.parcel_id}-location", r.message)
+            found.append(f"{p.parcel_id} 段名不在官方清單")
     lots = [c for c in case.claims if c.field == ClaimField.lot_no]
     for c in lots:
         if not LOT_RE.match(c.ai_value):
