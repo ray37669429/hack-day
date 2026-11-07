@@ -24,7 +24,8 @@ header { display: flex; align-items: center; gap: 8px; padding: 0 12px; backgrou
 header .logo { width: 16px; height: 16px; border: 2px solid var(--blue); border-radius: 3px; transform: rotate(45deg); margin: 0 6px 0 2px; flex: none; }
 header h1 { font-size: 14px; font-weight: 600; margin: 0; }
 header .sep { width: 1px; height: 18px; background: var(--line); margin: 0 2px; flex: none; }
-.tbtn { border: 1px solid var(--line); background: var(--panel2); color: var(--fg); border-radius: 3px; padding: 2px 9px; cursor: pointer; text-decoration: none; font-size: 12px; }
+.tbtn { border: 1px solid var(--line); background: var(--panel2); color: var(--fg); border-radius: 3px; padding: 0 9px; cursor: pointer; text-decoration: none;
+  font-size: 12px; line-height: 22px; height: 24px; white-space: nowrap; flex: none; display: inline-flex; align-items: center; gap: 6px; }
 .tbtn:hover { border-color: var(--blue); }
 .crumb { font-family: var(--mono); color: var(--fg2); font-size: 12px; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .live { display: inline-flex; align-items: center; gap: 6px; color: var(--fg2); font-size: 12px; margin-left: auto; }
@@ -108,7 +109,10 @@ main { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(300px, 2
 .warnline { color: var(--orange); font-size: 11px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* 事件串流：新的在底部，舊的從頂部淡出，不用捲動 */
-.tbtn.demo { background: var(--blue-d); border-color: var(--blue-d); font-weight: 600; }
+.tbtn.demo { background: var(--blue-d); border-color: var(--blue-d); font-weight: 600; min-width: 92px; justify-content: center; }
+.tbtn.demo.on { background: #18263A; border-color: var(--blue); color: var(--blue); cursor: default; }
+.tbtn.demo.on::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--blue); animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity: .2; } }
 .tbtn.demo:hover { background: var(--blue); }
 .demo { flex: none; margin: 8px 8px 0; border: 1px solid var(--blue-d); background: #16233A; border-radius: 4px; padding: 8px 10px; }
 .demo[hidden] { display: none; }
@@ -143,7 +147,7 @@ main { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(300px, 2
 .new { animation: in .25s ease-out; }
 @keyframes in { from { opacity: 0; transform: translateY(6px); } }
 .empty { color: var(--fg3); text-align: center; margin: auto; padding: 16px; line-height: 1.8; }
-@media (prefers-reduced-motion: reduce) { .new, .edge.on, .live i { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .new, .edge.on, .live i, .tbtn.demo.on::before { animation: none; } }
 </style>
 </head>
 <body>
@@ -479,7 +483,7 @@ async function farmerView() { return (await fetch(`../api/f/${token}`, { cache: 
 
 async function runDemo() {
   DEMO.running = true; DEMO.paused = false; DEMO.skip = false; DEMO.step = 0;
-  $("#demoBtn").textContent = "展示中…";
+  $("#demoBtn").textContent = "展示中"; $("#demoBtn").classList.add("on");
   try {
     say("一、建立案例", "幫一位地主開一個案子（假謄本 C02：一筆地、兩位地主共有）。農民只會收到一個專屬連結，不用帳號密碼。", "photo");
     const r = await fetch("../api/cases", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sample_id: "C02" }) });
@@ -549,7 +553,7 @@ async function runDemo() {
     } else $("#demo").hidden = true;
   } finally {
     DEMO.running = false; DEMO.node = null; DEMO.toldCheck = false;
-    $("#demoBtn").textContent = "▶ 自動展示";
+    $("#demoBtn").textContent = "▶ 自動展示"; $("#demoBtn").classList.remove("on");
   }
 }
 $("#demoBtn").addEventListener("click", () => { if (!DEMO.running) runDemo(); });
