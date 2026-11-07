@@ -1,5 +1,19 @@
 # web — 前端
 
+設計（風格、畫面、動畫）見 `docs/frontend-design.md`。
+
+## 農民手機頁 `farmer.html`
+
+接後端的正式頁面。先啟動後端（`.venv\Scripts\python -m uvicorn app.main:app --port 8001`），
+用 `POST /api/cases` 建立案例，再用回傳的 `farmer_token` 開啟：
+
+```text
+http://localhost:8001/web/farmer.html#t=<farmer_token>
+```
+
+流程：拍謄本 → 收到了（自動等擷取完成）→ 回答 3 題（可聽可講）→ 完成。重新打開連結會停在原處。
+朗讀用 `audio/manifest.json` 對應的音檔，沒有音檔就用瀏覽器語音；語音功能在 `voice.js`。
+
 ## 測試台 `prototype.html`
 
 不需要後端就能跑完整流程的前端原型，用假謄本（`data/samples/fake-transcripts/`）測試介面與 agent 流程。

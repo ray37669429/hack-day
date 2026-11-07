@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFDF7">
+<title>土地謄本</title>
+<!-- 設計見 docs/frontend-design.md。資料只走 /api/f/{token}，不顯示身分證號。 -->
+<style>
+:root {
+  color-scheme: light;
+  --bg: #FFFDF7; --fg: #2B2118; --fg2: #5C4A36; --line: #DCD2BE; --track: #E9E1D0;
+  --g: #4A9A2E; --gd: #357322; --gl: #DDF0D0; --gt: #27500A;
+  --wb: #FAEEDA; --wt: #854F0B;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); }
+body { font-family: "jf-openhuninn", "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", system-ui, sans-serif;
+  font-size: 20px; line-height: 1.55; -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 4px solid #1F5FAD; outline-offset: 3px; }
+#app { max-width: 480px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column;
+  padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); }
+body.sheet-open #app { padding-bottom: 240px; }
+#main { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+
+.top { display: flex; align-items: center; gap: 12px; min-height: 56px; }
+.bar { flex: 1; height: 18px; border-radius: 9px; background: var(--track); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--g); border-radius: 9px; transition: width .5s ease-out; }
+
+.btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 64px; padding: 8px 16px;
+  border-radius: 16px; border: 2px solid var(--line); border-bottom-width: 6px; background: #fff; color: var(--fg);
+  font: inherit; font-size: 22px; font-weight: 700; cursor: pointer; transition: border-bottom-width .08s, margin-top .08s; }
+.btn:active { border-bottom-width: 2px; margin-top: 4px; }
+.btn svg { width: 30px; height: 30px; flex: none; }
+.pri { background: var(--g); border-color: var(--gd); color: #fff; }
+.soft { font-size: 20px; color: var(--fg2); }
+.back { width: 56px; min-height: 56px; padding: 0; flex: none; }
+.row { display: flex; gap: 12px; }
+.row > .btn { flex: 1; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid .btn { flex-direction: column; min-height: 112px; gap: 4px; }
+.grid .btn svg { width: 42px; height: 42px; }
+
+.who { display: flex; gap: 12px; align-items: flex-start; }
+.mascot { width: 76px; flex: none; }
+.bubble { position: relative; flex: 1; background: #fff; border: 2px solid var(--line); border-radius: 18px;
+  padding: 12px 14px; font: inherit; text-align: left; color: var(--fg); cursor: pointer; min-height: 64px; }
+.bubble::before { content: ""; position: absolute; left: -11px; top: 24px; border: 10px solid transparent;
+  border-right-color: var(--line); border-left: 0; }
+.bubble .t { display: block; font-size: 26px; font-weight: 700; line-height: 1.35; }
+.bubble .s { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 18px; color: var(--fg2); }
+.bubble .s svg { width: 22px; height: 22px; color: var(--g); }
+
+.lands { display: flex; flex-direction: column; gap: 8px; }
+.land { background: #fff; border: 2px solid var(--line); border-radius: 16px; padding: 10px 14px; }
+.land small { display: block; font-size: 18px; color: var(--fg2); }
+.land b { font-size: 28px; letter-spacing: .02em; }
+.note { background: var(--wb); color: var(--wt); border-radius: 14px; padding: 12px 14px; }
+.heard { font-size: 18px; color: var(--fg2); }
+.center { text-align: center; }
+.h1 { font-size: 30px; font-weight: 700; margin: 0; line-height: 1.3; }
+.say { font-size: 21px; color: var(--fg2); margin: 0; }
+.spacer { flex: 1; }
+.mid { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 0; text-align: center; }
+.big-mascot { width: 120px; }
+
+.mic { width: 112px; height: 112px; border-radius: 50%; background: var(--g); color: #fff; display: flex;
+  align-items: center; justify-content: center; animation: breath 1.6s ease-in-out infinite; }
+.mic svg { width: 56px; height: 56px; }
+@keyframes breath { 0%, 100% { box-shadow: 0 0 0 0 rgba(74, 154, 46, .45); } 50% { box-shadow: 0 0 0 22px rgba(74, 154, 46, 0); } }
+.rb { font-size: 56px; font-weight: 700; line-height: 1.2; }
+
+.view { position: relative; aspect-ratio: 3 / 4; max-height: 46vh; width: 100%; border: 3px dashed var(--line); border-radius: 18px;
+  background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  color: var(--fg2); overflow: hidden; }
+.view svg { width: 64px; height: 64px; }
+.view img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #F3EEE3; }
+.scan { position: absolute; left: 0; right: 0; top: 0; height: 5px; background: var(--g); animation: scan 1.1s ease-in-out infinite alternate; }
+@keyframes scan { to { top: calc(100% - 5px); } }
+
+.fwd { animation: inR .3s ease-out; }
+.bk { animation: inL .3s ease-out; }
+@keyframes inR { from { opacity: 0; transform: translateX(16px); } }
+@keyframes inL { from { opacity: 0; transform: translateX(-16px); } }
+.pop { animation: pop .3s ease-out; }
+@keyframes pop { from { opacity: 0; transform: scale(.7); } }
+.check path { stroke-dasharray: 70; stroke-dashoffset: 70; animation: draw .4s .1s ease-out forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+
+#sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; transform: translateY(105%); transition: transform .3s ease-out; }
+#sheet.up { transform: none; }
+#sheet.ok { background: var(--gl); color: var(--gt); }
+#sheet.warn { background: var(--wb); color: var(--wt); }
+#sheet .in { max-width: 480px; margin: 0 auto; padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: 12px; }
+#sheet .title { display: flex; align-items: center; gap: 10px; font-size: 26px; font-weight: 700; }
+#sheet .title svg { width: 40px; height: 40px; flex: none; }
+#sheet .body { font-size: 21px; margin: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before { animation: none !important; transition: none !important; }
+  .check path { stroke-dashoffset: 0; }
+}
+</style>
+</head>
+<body>
+<div id="app"><main id="main" aria-live="polite"></main></div>
+<div id="sheet" role="status"><div class="in"></div></div>
+<input type="file" id="cam" accept="image/*" capture="environment" hidden>
+
+<script type="module">
+import * as V from "./voice.js";
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const token = new URLSearchParams(location.hash.slice(1)).get("t") || "";
+const API = `../api/f/${encodeURIComponent(token)}`;
+
+// ───── 圖示（線條，跟著文字顏色）
+const ICON = {
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  x: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>',
+  camera: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.8-.9 1.5v.5M12 17v.01"/>',
+  left: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  right: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  volume: '<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
+  self: '<circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/>',
+  other: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20.5a6.5 6.5 0 0 1 13 0M15.5 4.8a3.5 3.5 0 0 1 0 6.4M18 14a6.5 6.5 0 0 1 3.5 6.5"/>',
+  lease: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
+  tractor: '<circle cx="7" cy="17" r="3"/><circle cx="18" cy="18" r="2"/><path d="M4 14V8h6l2 6h7v3M10 17h6M7 8V5"/>',
+  rotate: '<path d="M19.5 11A7.5 7.5 0 0 0 5.6 7.5M4.5 4v3.5H8M4.5 13a7.5 7.5 0 0 0 13.9 3.5M19.5 20v-3.5H16"/>',
+  split: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M12 4.5v15"/>',
+  stop: '<rect x="7" y="7" width="10" height="10" rx="1.5"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/>',
+  hand: '<path d="M8 11.5V6a1.5 1.5 0 0 1 3 0v5M11 10.5V4.5a1.5 1.5 0 0 1 3 0V10.5M14 10.5V6a1.5 1.5 0 0 1 3 0v6.5M17 10a1.5 1.5 0 0 1 3 0v5a6 6 0 0 1-6 6h-1.5a6 6 0 0 1-5-2.7L4.3 14.6a1.5 1.5 0 0 1 2.4-1.8L8 14.5"/>',
+  doc: '<path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M9 12h6M9 16h6"/>',
+  ok: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/>',
+};
+const ic = (n) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
+
+// ───── 斗笠阿伯：talk 唸題目、listen 在聽、happy 記好了
+function mascot(mood = "talk", cls = "mascot") {
+  const eyes = mood === "happy"
+    ? '<path d="M22 46q3.5-4 7 0M35 46q3.5-4 7 0" stroke="#2B2118" stroke-width="2.6" fill="none" stroke-linecap="round"/>'
+    : '<circle cx="25.5" cy="45" r="2.8" fill="#2B2118"/><circle cx="38.5" cy="45" r="2.8" fill="#2B2118"/>';
+  const mouth = mood === "happy" ? '<path d="M24 53q8 7 16 0" stroke="#2B2118" stroke-width="2.6" fill="none" stroke-linecap="round"/>'
+    : mood === "listen" ? '<path d="M28 55h8" stroke="#2B2118" stroke-width="2.6" stroke-linecap="round"/>'
+    : '<ellipse cx="32" cy="55" rx="4.5" ry="3.5" fill="#8A3B2A"/>';
+  const ear = mood === "listen" ? '<path d="M55 41a8 8 0 0 1 0 12M59 37a13 13 0 0 1 0 20" stroke="#4A9A2E" stroke-width="2.6" fill="none" stroke-linecap="round"/>' : "";
+  return `<svg class="${cls}" viewBox="0 0 64 72" aria-hidden="true">
+    <circle cx="32" cy="47" r="19" fill="#F3CFA6"/>
+    <path d="M2 33L32 5l30 28z" fill="#D9B45A" stroke="#9C7A2A" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M14 33h36" stroke="#9C7A2A" stroke-width="2"/>
+    <circle cx="20" cy="52" r="3.2" fill="#F0A98A"/><circle cx="44" cy="52" r="3.2" fill="#F0A98A"/>
+    ${eyes}${mouth}${ear}</svg>`;
+}
+
+// ───── 3 題（唸的句子必須和 web/audio/prompts.json 一樣，才會播 Qwen3 TTS 音檔）
+const Q = [
+  { id: "q1", kind: "yesno", text: "這幾筆是你的地嗎？", say: "這幾筆，是你的地嗎？請說，是，或是，不是。", hint: "說「是」或「不是」",
+    opts: [["yes", "check"], ["no", "x"]] },
+  { id: "q2", kind: "who", text: "這些地是誰在種？", say: "這些地，是誰在種？是你自己，還是別人？", hint: "說「我自己」或「別人」",
+    opts: [["self", "self"], ["other", "other"]] },
+  { id: "q3", kind: "cat", text: "用什麼方式給人種？", say: "用什麼方式給人種？承租、託耕、輪耕，還是分耕？", hint: "說「承租」「託耕」「輪耕」或「分耕」",
+    opts: [["承租", "lease"], ["託耕", "tractor"], ["輪耕", "rotate"], ["分耕", "split"]], grid: true },
+];
+const SAY = {
+  retry: "我沒聽清楚，請再講一次。",
+  buttons: "我沒聽清楚，請按下面的按鈕。",
+  again: "好，請再回答一次。",
+  received: "收到了。接下來不用做事，好了會請你回答幾個問題。",
+  done: "謝謝你，回答完了。同意書準備好以後，協助者會跟你約時間，帶印章來簽名。",
+  next: (n) => `很好。請拍第 ${n} 張。`,
+  rb: (v) => `你講，${V.LABEL[v]}，對嗎？`,
+};
+
+// ───── 狀態
+const st = {
+  screen: "loading", view: null, page: 1, preview: null, checking: false,
+  q: 0, mode: "wait", pending: null, fails: 0, note: "", heard: "",
+  sheet: null, key: "", dir: "fwd", busy: false,
+};
+
+async function getView() {
+  const r = await fetch(API, { cache: "no-store" });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(String(r.status));
+  return r.json();
+}
+
+function nextPage() {
+  for (let p = 1; p <= st.view.pages_expected; p++) if (!st.view.pages_done.includes(p)) return p;
+  return st.view.pages_expected;
+}
+
+async function load() {
+  if (!token) return go("badlink");
+  try { st.view = await getView(); } catch { return go("offline"); }
+  if (!st.view) return go("badlink");
+  route();
+}
+
+// 依後端狀態決定畫面。重新打開連結會停在原處。
+function route() {
+  const v = st.view;
+  if (v.stage === "collecting") { st.page = nextPage(); go("photo"); }
+  else if (v.stage === "extracting") { go("received"); poll(); }
+  else if (v.stage === "needs_human") go("human");
+  else {
+    const i = Q.findIndex((q) => !(q.id in v.answers));
+    if (i < 0) go("done");
+    else { st.q = i; go("ready"); } // 先按「開始回答」，瀏覽器才允許播聲音
+  }
+}
+
+let pollTimer;
+function poll() {
+  clearTimeout(pollTimer);
+  pollTimer = setTimeout(async () => {
+    try {
+      const v = await getView();
+      if (v) { st.view = v; if (v.stage !== "extracting") return route(); }
+    } catch { /* 網路不穩就繼續等 */ }
+    poll();
+  }, 3000);
+}
+
+function go(screen, dir = "fwd") {
+  st.screen = screen;
+  st.dir = dir;
+  render();
+}
+
+// ───── 畫面
+const bar = (pct) => `<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><i style="width:${Math.max(4, pct)}%"></i></div>`;
+const bubble = (t, s, act = "hear") => `<button class="bubble" data-act="${act}"><span class="t">${esc(t)}</span><span class="s">${ic("volume")}${esc(s)}</span></button>`;
+const btn = (act, icon, label, cls = "", extra = "") => `<button class="btn ${cls}" data-act="${act}" ${extra}>${icon ? ic(icon) : ""}${esc(label)}</button>`;
+
+function viewHtml() {
+  const v = st.view;
+  switch (st.screen) {
+    case "loading":
+      return `<div class="spacer"></div><div class="mid">${mascot("talk", "big-mascot")}<p class="say">打開中…</p></div><div class="spacer"></div>`;
+    case "badlink":
+      return `<div class="spacer"></div><div class="mid">${mascot("talk", "big-mascot")}<p class="h1">這個連結打不開</p>
+        <p class="say">請找幫你處理的人，再要一次連結。</p></div><div class="spacer"></div>`;
+    case "offline":
+      return `<div class="spacer"></div><div class="mid">${mascot("talk", "big-mascot")}<p class="h1">網路好像斷了</p>
+        <p class="say">請等一下，再按下面的按鈕。</p></div><div class="spacer"></div>${btn("reload", "rotate", "再試一次", "pri")}`;
+    case "photo": {
+      const n = v.pages_expected;
+      const frame = st.preview
+        ? `<img src="${esc(st.preview)}" alt="剛拍的照片">${st.checking ? '<div class="scan"></div>' : ""}`
+        : `${ic("doc")}<span>整張紙都要拍進來</span>`;
+      return `<div class="top">${bar((v.pages_done.length / n) * 100)}</div>
+        <div class="who">${mascot("talk")}${bubble("請拍土地謄本", `第 ${st.page} 張，共 ${n} 張`)}</div>
+        <div class="view">${frame}</div>
+        ${st.checking ? `<p class="say center">看一下照片清不清楚…</p>` : st.sheet ? "" : btn("shoot", "camera", "拍照", "pri")}`;
+    }
+    case "received":
+      return `<div class="spacer"></div><div class="mid">${mascot("happy", "big-mascot")}
+        <p class="h1">收到了</p><p class="say">接下來不用做事。<br>好了會請你回答幾個問題。</p>
+        <p class="say" style="font-size:18px">手機可以先放著。</p></div><div class="spacer"></div>`;
+    case "ready": {
+      const left = Q.length - st.q;
+      return `<div class="spacer"></div><div class="mid">${mascot("talk", "big-mascot")}
+        <p class="h1">${left === Q.length ? `有 ${left} 個問題要問你` : `還有 ${left} 個問題`}</p>
+        <p class="say">可以用講的，也可以用按的。</p></div><div class="spacer"></div>${btn("start", "right", "開始回答", "pri")}`;
+    }
+    case "question": return questionHtml();
+    case "done":
+      return `<div class="spacer"></div><div class="mid">${mascot("happy", "big-mascot")}
+        <svg class="check" width="88" height="88" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="44" fill="#4A9A2E"/>
+        <path d="M28 50l14 14 28-30" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <p class="h1">謝謝你，回答完了</p><p class="say">同意書準備好以後，協助者會跟你約時間，帶印章來簽名。</p></div><div class="spacer"></div>`;
+    case "human":
+      return `<div class="spacer"></div><div class="mid">${mascot("talk", "big-mascot")}
+        <p class="h1">協助者會跟你聯絡</p><p class="say">你不用再做事，等電話就好。</p></div><div class="spacer"></div>`;
+  }
+  return "";
+}
+
+function questionHtml() {
+  const q = Q[st.q], v = st.view;
+  const done = st.q + (st.sheet ? 1 : 0);
+  const listening = st.mode === "listen" || st.mode === "rbListen";
+  const face = st.sheet ? "happy" : listening ? "listen" : "talk";
+  const top = `<div class="top">${st.q > 0 ? btn("back", "left", "", "back", 'aria-label="回上一步"') : ""}${bar((done / Q.length) * 100)}</div>
+    <div class="who">${mascot(face)}${bubble(q.text, `第 ${st.q + 1} 題，共 ${Q.length} 題・點這裡再聽一次`)}</div>`;
+  const lands = q.id === "q1" && v.lands.length
+    ? `<div class="lands">${v.lands.map((l) => `<div class="land"><small>${esc(l.location)}</small><b>${esc(l.lot_no)}</b></div>`).join("")}</div>` : "";
+  const note = st.note ? `<div class="note">${esc(st.note)}</div>` : "";
+  const heard = st.heard ? `<div class="heard">聽到：${esc(st.heard)}</div>` : "";
+
+  if (listening) {
+    const hint = st.mode === "rbListen" ? "說「對」或「不對」" : q.hint;
+    return `${top}<div class="mid"><div class="mic">${ic("mic")}</div><p class="h1">我在聽，請說</p><p class="say">${esc(hint)}</p></div>
+      <div class="spacer"></div>${btn("stopListen", "stop", "不講了，改用按的", "soft")}`;
+  }
+  if (st.mode === "readback") {
+    return `${top}<div class="mid"><p class="say">你講的是</p><div class="rb pop">${esc(V.LABEL[st.pending.v])}</div><p class="h1">對嗎？</p></div>
+      ${note}<div class="spacer"></div>${btn("rbYes", "check", "對", "pri")}${btn("rbNo", "left", "不對，再講一次")}`;
+  }
+  const opts = q.opts.map(([val, icon]) => btn("ans", icon, V.LABEL[val], "", `data-v="${esc(val)}"`)).join("");
+  return `${top}${lands}${heard}${note}
+    ${V.canListen ? btn("listen", "mic", "按一下，用講的", "pri") : ""}
+    <div class="${q.grid ? "grid" : "row"}">${opts}</div>
+    ${btn("ans", "help", "我不確定", "soft", 'data-v="unsure"')}`;
+}
+
+let lastKey = "";
+function render() {
+  const key = `${st.screen}:${st.screen === "question" ? st.q : st.screen === "photo" ? st.page : ""}`;
+  const main = $("#main");
+  main.innerHTML = viewHtml();
+  if (key !== lastKey) {
+    main.classList.remove("fwd", "bk");
+    void main.offsetWidth;
+    main.classList.add(st.dir === "back" ? "bk" : "fwd");
+    lastKey = key;
+  }
+  main.inert = Boolean(st.sheet);
+}
+
+// ───── 底部回饋面板
+function showSheet(o) {
+  st.sheet = o;
+  const el = $("#sheet");
+  el.className = o.tone;
+  el.querySelector(".in").innerHTML = `<div class="title pop">${ic(o.icon || "ok")}<span>${esc(o.title)}</span></div>
+    ${o.body ? `<p class="body">${esc(o.body)}</p>` : ""}
+    ${btn(o.act, o.btnIcon || "right", o.label, "pri")}
+    ${o.redo ? btn("redo", "left", "不對，重選", "soft") : ""}`;
+  document.body.classList.add("sheet-open");
+  void el.offsetWidth; // 先讓瀏覽器算一次位置，滑上來的動畫才會播；不用 requestAnimationFrame，避免收起後又被加回來
+  el.classList.add("up");
+  render();
+  setTimeout(() => { if (st.sheet === o) el.querySelector(".btn")?.focus({ preventScroll: true }); }, 320);
+}
+function hideSheet() {
+  st.sheet = null;
+  $("#sheet").classList.remove("up");
+  document.body.classList.remove("sheet-open");
+}
+
+// ───── 拍照
+$("#cam").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  hideSheet();
+  st.preview = URL.createObjectURL(file);
+  st.checking = true;
+  render();
+  const fd = new FormData();
+  fd.append("page", String(st.page));
+  fd.append("file", file, file.name || "photo.jpg");
+  let r = null;
+  try {
+    const [res] = await Promise.all([fetch(`${API}/photos`, { method: "POST", body: fd }), sleep(1000)]);
+    if (res.ok) r = await res.json();
+  } catch { /* 下面處理 */ }
+  st.checking = false;
+  if (!r) {
+    showSheet({ tone: "warn", icon: "camera", title: "照片沒有送出去", body: "請再拍一次。", act: "shoot", label: "再拍一次", btnIcon: "camera" });
+    return;
+  }
+  if (!r.ok) {
+    const [title, ...rest] = r.reason.split("，");
+    showSheet({ tone: "warn", icon: r.reason.includes("暗") ? "sun" : "hand", title, body: rest.join("，") + "。",
+      act: "shoot", label: "再拍一次", btnIcon: "camera" });
+    V.speak(r.reason + "。");
+    return;
+  }
+  if (r.all_pages_done) {
+    st.preview = null;
+    st.view.stage = "extracting";
+    go("received");
+    V.speak(SAY.received);
+    poll();
+    return;
+  }
+  st.view.pages_done.push(st.page);
+  const n = nextPage();
+  showSheet({ tone: "ok", title: "這張很清楚", act: "photoNext", label: `拍第 ${n} 張`, btnIcon: "camera" });
+  V.speak(SAY.next(n));
+});
+
+// ───── 回答
+function sayQuestion() { V.speak(Q[st.q].say); }
+
+async function startListen() {
+  const readback = st.mode === "readback";
+  st.mode = readback ? "rbListen" : "listen";
+  st.note = "";
+  render();
+  const r = await V.listen();
+  if (st.mode !== "listen" && st.mode !== "rbListen") return; // 已經改用按的
+  if (r.error) {
+    st.mode = readback ? "readback" : "wait";
+    st.note = r.error === "denied" ? "麥克風沒有打開。請用下面的按鈕回答。" : "這支手機不能用講的。請用下面的按鈕回答。";
+    return render();
+  }
+  const kind = readback ? "yesno" : Q[st.q].kind;
+  for (const a of r.alts) {
+    const v = V.match(kind, a);
+    if (v) return onHeard(v, a, readback);
+  }
+  if (readback) { st.mode = "readback"; return render(); }
+  st.fails += 1;
+  st.mode = "wait";
+  st.heard = r.alts[0] || "";
+  st.note = st.fails >= 2 ? SAY.buttons : SAY.retry;
+  render();
+  V.speak(st.note);
+}
+
+function onHeard(v, transcript, readback) {
+  if (!readback) {
+    st.pending = { v, transcript };
+    st.mode = "readback";
+    st.heard = "";
+    render();
+    // 唸回確認後自動再聽一次「對／不對」；也可以直接按
+    V.speak(SAY.rb(v)).then(() => { if (st.mode === "readback" && st.pending?.v === v) startListen(); });
+    return;
+  }
+  if (v === "yes") submit(st.pending.v, "voice", st.pending.transcript);
+  else { st.pending = null; st.mode = "wait"; render(); V.speak(SAY.again); }
+}
+
+async function submit(value, channel, transcript = "") {
+  if (st.busy) return;
+  st.busy = true;
+  st.mode = "wait";
+  V.cancelListen();
+  V.stop();
+  try {
+    const r = await fetch(`${API}/answers`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: Q[st.q].id, value, channel, transcript }),
+    });
+    if (!r.ok) throw new Error(String(r.status));
+    st.view.answers = (await r.json()).answers;
+  } catch {
+    st.busy = false;
+    st.note = "沒有送出去，請再按一次。";
+    return render();
+  }
+  st.busy = false;
+  st.pending = null; st.fails = 0; st.note = ""; st.heard = "";
+  showSheet({ tone: "ok", title: `記好了：${V.LABEL[value]}`, act: "next", label: st.q < Q.length - 1 ? "繼續" : "完成", redo: true });
+}
+
+// ───── 按鈕
+const ACT = {
+  reload: () => { go("loading"); load(); },
+  shoot: () => $("#cam").click(),
+  photoNext: () => { hideSheet(); st.preview = null; st.page = nextPage(); go("photo"); },
+  hear: () => {
+    if (st.screen === "question") sayQuestion();
+    else if (st.screen === "photo") V.speak(`請拍第 ${st.page} 張土地謄本。`);
+  },
+  start: () => { st.mode = "wait"; go("question"); sayQuestion(); },
+  listen: () => startListen(),
+  stopListen: () => { st.mode = st.pending ? "readback" : "wait"; V.cancelListen(); render(); },
+  ans: (el) => { V.cancelListen(); submit(el.dataset.v, "button"); },
+  rbYes: () => { V.cancelListen(); submit(st.pending.v, "voice", st.pending.transcript); },
+  rbNo: () => { st.mode = "wait"; V.cancelListen(); st.pending = null; render(); V.speak(SAY.again); },
+  next: () => {
+    hideSheet();
+    if (st.q < Q.length - 1) { st.q += 1; st.mode = "wait"; go("question"); sayQuestion(); }
+    else { go("done"); V.speak(SAY.done); }
+  },
+  redo: () => { hideSheet(); render(); sayQuestion(); },
+  back: () => { V.cancelListen(); st.mode = "wait"; st.pending = null; st.note = ""; st.heard = ""; st.q -= 1; go("question", "back"); sayQuestion(); },
+};
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-act]");
+  if (el && ACT[el.dataset.act]) ACT[el.dataset.act](el);
+});
+window.addEventListener("hashchange", () => location.reload());
+
+V.loadAudio();
+render();
+load();
+</script>
+</body>
+</html>
