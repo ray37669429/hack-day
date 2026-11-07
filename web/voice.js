@@ -113,40 +113,53 @@ export async function loadAudio() {
   } catch { /* 沒有音檔就用瀏覽器語音 */ }
 }
 
+// 目前這一句的「結束」：被下一句打斷、唸完、出錯或逾時，都一定會呼叫，畫面才不會卡住
+let current = null;
+
 export function stop() {
   try { player.pause(); } catch {}
   try { speechSynthesis?.cancel(); } catch {}
+  const end = current;
+  current = null;
+  if (end) end();
 }
 
-/** 唸一句話。回傳的 Promise 在唸完（或失敗）時結束，不會丟出錯誤。 */
+/** 唸一句話。回傳的 Promise 一定會結束：唸完、出錯、被下一句打斷，或逾時（瀏覽器擋播放、App 到背景、沒有喇叭）。 */
 export function speak(text) {
   stop();
-  const file = audioMap[text];
-  if (file) {
-    return new Promise((done) => {
-      player.src = `audio/${file}`;
-      player.onended = done;
-      player.onerror = () => browserSpeak(text).then(done);
-      player.play().catch(() => browserSpeak(text).then(done));
-    });
-  }
-  return browserSpeak(text);
+  return new Promise((done) => {
+    let finished = false;
+    const limit = Math.max(3000, [...String(text)].length * 350) + 2000;
+    const end = () => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      if (current === end) current = null;
+      done();
+    };
+    const timer = setTimeout(end, limit);
+    current = end;
+    const file = audioMap[text];
+    if (!file) return browserSpeak(text, end);
+    player.onended = end;
+    player.onerror = () => browserSpeak(text, end);
+    player.src = `audio/${file}`;
+    player.play().catch(() => browserSpeak(text, end));
+  });
 }
 
-function browserSpeak(text) {
-  return new Promise((done) => {
-    try {
-      if (!("speechSynthesis" in window)) return done();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = "zh-TW";
-      u.rate = 0.85;
-      const v = voices.find((x) => x.lang === "zh-TW") || voices.find((x) => /zh/i.test(x.lang));
-      if (v) u.voice = v;
-      u.onend = done;
-      u.onerror = done;
-      speechSynthesis.speak(u);
-    } catch { done(); }
-  });
+function browserSpeak(text, end) {
+  try {
+    if (!("speechSynthesis" in window)) return end();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "zh-TW";
+    u.rate = 0.85;
+    const v = voices.find((x) => x.lang === "zh-TW") || voices.find((x) => /zh/i.test(x.lang));
+    if (v) u.voice = v;
+    u.onend = end;
+    u.onerror = end;
+    speechSynthesis.speak(u);
+  } catch { end(); }
 }
 
 // ───── 收音

@@ -858,6 +858,7 @@ async function startListen() {
   const readback = st.mode === "readback";
   st.mode = readback ? "rbListen" : "listen";
   st.note = "";
+  st.ask = null; // 一按麥克風，對話框就回到目前的題目
   render();
   const r = await V.listen();
   if (st.mode !== "listen" && st.mode !== "rbListen") return; // 已經改用按的
@@ -913,6 +914,7 @@ async function submit(value, channel, transcript = "") {
   if (!q) return;
   st.busy = true;
   st.mode = "wait";
+  st.ask = null; // 記錄答案時，對話框回到題目
   V.cancelListen();
   V.stop();
   try {
