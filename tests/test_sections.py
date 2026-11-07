@@ -91,8 +91,8 @@ def test_check_agent_flags_misread_section():
     from app.models import Case, ExOwnership, ExParcel, Extraction, Source
     src = Source(file="p.jpg", page=1)
     ex = Extraction(parcels=[ExParcel(parcel_id="P1", county="雲林縣", township="東勢鄉", section="四安段",
-                                      lot_no="1546-0000", area_raw="2022.05", source=src)],
-                    ownerships=[ExOwnership(parcel_id="P1", owner="吳**", id_masked="P121*****3",
+                                      lot_no="0123-0004", area_raw="2022.05", source=src)],
+                    ownerships=[ExOwnership(parcel_id="P1", owner="農民A", id_masked="A12345****",
                                             share_raw="全部 1分之1", source=src)])
     case = Case(id="T1", farmer_token="x")
     actions.add_extraction(case, "agent:extract", ex)
