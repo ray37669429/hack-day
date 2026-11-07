@@ -2,13 +2,7 @@
 
 引擎（環境變數 EXTRACT_ENGINE）：
   oracle  讀假謄本答案檔，當作「完美擷取」測試整條流程（案例有 sample_id 時的預設）
-  vision  呼叫視覺 AI。尚未實作。
-
-vision 引擎實作要點：
-- 讓 AI 依 Extraction 的 JSON 格式輸出，每個值附來源頁碼。
-- 去掉謄本的星號補位（「******1,234.56平方公尺」→「1234.56」）。
-- 看不清就填「待確認」並在 pending 說明，絕對不猜。
-- 地號一律當文字，保留前導零。同地號可能出現在不同段，段名要一起讀。
+  vision  透過 LLM harness（app/llm/）呼叫視覺模型，任務定義在 app/llm/tasks/extract_transcript.py
 """
 from __future__ import annotations
 
@@ -22,7 +16,8 @@ ROOT = Path(__file__).resolve().parents[2]
 SAMPLES = ROOT / "data" / "samples" / "fake-transcripts"
 
 
-def run(case: Case, photos: list[Path]) -> Extraction:
+def run(case: Case, photos: list[tuple[int, Path]]) -> Extraction:
+    """photos：依頁碼排序的（頁碼, 照片路徑）。"""
     engine = os.getenv("EXTRACT_ENGINE") or ("oracle" if case.sample_id else "vision")
     if engine == "oracle":
         if not case.sample_id:
@@ -30,5 +25,15 @@ def run(case: Case, photos: list[Path]) -> Extraction:
         data = json.loads((SAMPLES / case.sample_id / "answer.json").read_text(encoding="utf-8"))
         return Extraction.model_validate(data)
     if engine == "vision":
-        raise NotImplementedError("視覺 AI 擷取尚未實作，請先用假謄本案例（oracle 引擎）")
+        return run_vision(photos)
     raise RuntimeError(f"不認得的擷取引擎：{engine}")
+
+
+def run_vision(photos: list[tuple[int, Path]]) -> Extraction:
+    """透過 LLM harness 呼叫視覺模型（供應商由 LLM_PROVIDER 決定，預設 OpenAI）。"""
+    from ..llm import harness, providers
+    from ..llm.base import ImageInput
+    from ..llm.tasks.extract_transcript import TASK
+
+    images = [ImageInput(label=f"第 {page} 頁，檔名 {path.name}", path=path) for page, path in photos]
+    return harness.run(TASK, providers.get(), images).value

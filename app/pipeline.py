@@ -17,7 +17,8 @@ def after_photos(case_id: str) -> None:
     actions.set_stage(case, "system", Stage.extracting)
     store.save(case)
     try:
-        photos = [store.case_dir(case.id) / "photos" / p.file for p in case.photos if p.ok]
+        latest = {p.page: p.file for p in case.photos if p.ok}  # 同一頁拍多次時取最後一張合格的
+        photos = [(page, store.case_dir(case.id) / "photos" / latest[page]) for page in sorted(latest)]
         actions.add_extraction(case, "agent:extract", extract.run(case, photos))
         flags = check.run(case)
         triage.after_extraction(case, flags)

@@ -62,6 +62,7 @@ py -3.10 -m venv .venv
 - **前端測試台**：[web/prototype.html](web/prototype.html)（開啟方式見 [web/README.md](web/README.md)）
 - **3 小時開發計畫（單人）**：[docs/3h-mvp-plan.md](docs/3h-mvp-plan.md)
 - **後端設計**：[docs/backend-design.md](docs/backend-design.md)
+- **LLM harness（OpenAI）**：[docs/llm-harness.md](docs/llm-harness.md)
 - 語音設計（Qwen3 TTS）：[docs/voice-design.md](docs/voice-design.md)
 - 同意書版面與欄位規格：[docs/agreement-spec.md](docs/agreement-spec.md)（產生器：`python tools/make_agreement.py`）
 - 系統設計討論稿（參考 Palantir Ontology）：[docs/ontology-design.md](docs/ontology-design.md)

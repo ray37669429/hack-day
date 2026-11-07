@@ -1,0 +1,193 @@
+{
+  "items": {
+    "q1": {
+      "files": {
+        "zh": "zh/q1.wav"
+      },
+      "zh_text": "這幾筆，是你的地嗎？請說，是，或是，不是。",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "q2": {
+      "files": {
+        "zh": "zh/q2.wav"
+      },
+      "zh_text": "這些地，是誰在種？是你自己，還是別人？",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "q3": {
+      "files": {
+        "zh": "zh/q3.wav"
+      },
+      "zh_text": "用什麼方式給人種？承租、託耕、輪耕，還是分耕？",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "retry": {
+      "files": {
+        "zh": "zh/retry.wav"
+      },
+      "zh_text": "我沒聽清楚，請再講一次。",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "use_buttons": {
+      "files": {
+        "zh": "zh/use_buttons.wav"
+      },
+      "zh_text": "我沒聽清楚，請按下面的按鈕。",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "rb_yes": {
+      "files": {
+        "zh": "zh/rb_yes.wav"
+      },
+      "zh_text": "你講，是，對嗎？",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "rb_no": {
+      "files": {
+        "zh": "zh/rb_no.wav"
+      },
+      "zh_text": "你講，不是，對嗎？",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "rb_unsure": {
+      "files": {
+        "zh": "zh/rb_unsure.wav"
+      },
+      "zh_text": "你講，我不確定，對嗎？",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "rb_self": {
+      "files": {
+        "zh": "zh/rb_self.wav"
+      },
+      "zh_text": "你講，我自己，對嗎？",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "rb_other": {
+      "files": {
+        "zh": "zh/rb_other.wav"
+      },
+      "zh_text": "你講，別人，對嗎？",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "rb_lease": {
+      "files": {
+        "zh": "zh/rb_lease.wav"
+      },
+      "zh_text": "你講，承租，對嗎？",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "rb_entrust": {
+      "files": {
+        "zh": "zh/rb_entrust.wav"
+      },
+      "zh_text": "你講，託耕，對嗎？",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "rb_rotate": {
+      "files": {
+        "zh": "zh/rb_rotate.wav"
+      },
+      "zh_text": "你講，輪耕，對嗎？",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "rb_split": {
+      "files": {
+        "zh": "zh/rb_split.wav"
+      },
+      "zh_text": "你講，分耕，對嗎？",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "again": {
+      "files": {
+        "zh": "zh/again.wav"
+      },
+      "zh_text": "好，請再回答一次。",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "photo_dark": {
+      "files": {
+        "zh": "zh/photo_dark.wav"
+      },
+      "zh_text": "照片有點暗，請到亮一點的地方再拍一次。",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "photo_blur": {
+      "files": {
+        "zh": "zh/photo_blur.wav"
+      },
+      "zh_text": "照片有點糊，請拿穩手機，再拍一次。",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "photo_next2": {
+      "files": {
+        "zh": "zh/photo_next2.wav"
+      },
+      "zh_text": "很好。請拍第 2 張。",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "photo_next3": {
+      "files": {
+        "zh": "zh/photo_next3.wav"
+      },
+      "zh_text": "很好。請拍第 3 張。",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "received": {
+      "files": {
+        "zh": "zh/received.wav"
+      },
+      "zh_text": "收到了。接下來不用做事，好了會請你回答幾個問題。",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    },
+    "done": {
+      "files": {
+        "zh": "zh/done.wav"
+      },
+      "zh_text": "謝謝你，回答完了。同意書準備好以後，協助者會跟你約時間，帶印章來簽名。",
+      "engine": {
+        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena"
+      }
+    }
+  }
+}

@@ -68,4 +68,5 @@
 - 測試：`.venv\Scripts\python -m pytest -q`（用假謄本跑完整流程）
 - Windows 請設 `PYTHONIOENCODING=utf-8`，避免中文輸出亂碼。
 - 修改資料只能透過 `app/actions.py`；新增欄位要改 `app/models.py` 並跑測試。
+- LLM：只能透過 `app/llm/harness.py` 呼叫（OpenAI，設計見 `docs/llm-harness.md`）；改提示詞要升 `PROMPT_VERSION` 並跑 `tools/eval_extract.py`，猜測必須為 0。
 - 語音合成：`tools/gen_tts.py`（本機 Qwen3-TTS 環境在 `C:\Users\Ray\qwen3-tts\venv`）。

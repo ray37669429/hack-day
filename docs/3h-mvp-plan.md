@@ -12,14 +12,16 @@
 | 後端骨架：資料模型、動作層、5 個 agent、API，端到端測試通過 | `app/`、`tests/` |
 | 前端測試台：農民手機（可聽可講）、協助者核對、同意書預覽 | `web/prototype.html` |
 | 3 組假謄本與正確答案 | `data/samples/fake-transcripts/` |
-| 國語朗讀音檔（本機 Qwen3-TTS） | `web/audio/zh/` |
+| 國語朗讀音檔（本機 Qwen3-TTS，21 句） | `web/audio/zh/` |
+| LLM harness（OpenAI、重試、護欄、評分，離線測試通過） | `app/llm/`、`tools/eval_extract.py` |
+| 台語試聽（本機 Fun-CosyVoice3，3 句，待人工聽評） | `web/audio/nan_trial/` |
 
 ## 剩下的工作與時間表（180 分鐘）
 
 | 時間 | 做什麼 | 檔案 | 完成標準 |
 | --- | --- | --- | --- |
 | 0:00–0:50 | **前端接後端**：測試台的拍照、回答、確認、產生同意書改成呼叫 API | `web/` | C01 從手機頁拍照到下載 Word 全程走 API |
-| 0:50–1:40 | **視覺 AI 擷取**：`extract.py` 的 `vision` 引擎，用 C01–C03 比對答案檔 | `app/agents/extract.py` | C01 關鍵欄位全對；看不清的欄位標待確認、不亂猜 |
+| 0:50–1:40 | **視覺 AI 擷取**：harness 已完成，放入 OpenAI 金鑰後跑 `tools/eval_extract.py`，依結果調提示詞 | `app/llm/tasks/extract_transcript.py` | C01–C03 猜測 0；正確率盡量 100% |
 | 1:40–2:05 | **語音實機**：HTTPS 通道，手機收音、播放音檔 | `web/` | 手機上能聽題目、用講的回答 |
 | 2:05–2:35 | **整合測試**：C01、C02、C03 各跑一次，修問題；**2:35 停止新功能** | 全部 | 三案都能出草稿或正式版 |
 | 2:35–3:00 | 驗收記錄、3 分鐘展示排練 | `docs/acceptance-log.md` | 可展示版本 |
@@ -45,7 +47,7 @@
 
 - [x] `.venv` 建好，`pip install -r requirements.txt` 成功，測試通過
 - [x] 本機 Qwen3-TTS 可用（`C:\Users\Ray\qwen3-tts\venv`），國語音檔已產生
-- [ ] 視覺 AI 的 API 金鑰放進 `.env`
+- [ ] `OPENAI_API_KEY` 放進 `.env`，先跑一次 `tools/eval_extract.py`
 - [ ] 準備 HTTPS 通道（cloudflared 或 ngrok），手機才能用麥克風
 - [ ] 台語：Fun-CosyVoice3 試跑結果確認（見 [voice-design.md](voice-design.md)）；台語句子請母語者校對
 - [ ] 手機和筆電在同一個網路
