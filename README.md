@@ -55,5 +55,6 @@ git clone https://github.com/ray37669429/hack-day.git
 
 ## 待辦 / 驗收
 
+- 系統設計討論稿（參考 Palantir Ontology）：[docs/ontology-design.md](docs/ontology-design.md)
 - 待辦與時間表：[docs/TODO.md](docs/TODO.md)
 - 驗收記錄：[docs/acceptance-log.md](docs/acceptance-log.md)

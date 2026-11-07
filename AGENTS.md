@@ -7,6 +7,8 @@
 
 黑客松專案：謄本 → 土地清單 Excel → 土地使用同意書 Word。
 完整需求、欄位對照、驗收方法見 `docs/whitepaper.md`；待辦見 `docs/TODO.md`。
+系統設計（Ontology：物件、Action、送出條件）見 `docs/ontology-design.md`，目前是討論稿；寫資料模型或改資料的程式前先讀它。
+核心原則：Excel 與 Word 只是輸出視圖；所有資料修改都要經過 Action，AI 只能建立「待確認」的擷取主張。
 
 ## 硬規則（違反即退回）
 
