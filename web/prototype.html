@@ -1,0 +1,820 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>農地同意書測試台</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: test harness — header with role tabs; main view (farmer phone / helper review / agreement preview) beside a test console. The farmer phone screen keeps one fixed high-contrast light look on purpose. */
+:root {
+  --bg: #F1F3F2; --surface: #FFFFFF; --sunken: #E8ECEA; --fg: #17201B; --muted: #57635C; --line: #D3DAD5;
+  --farmer: #A63D12; --agent: #2F5D50; --helper: #3D4F8C;
+  --warn: #8A5A00; --warn-bg: #FFF1D6; --ok: #276B33; --ok-bg: #E3F2E5; --bad: #A61E45; --bad-bg: #FBE6EC;
+  --ph-bg: #FFFFFF; --ph-fg: #111111; --ph-muted: #444444; --ph-line: #BFBFBF; --ph-accent: #A63D12; --ph-soft: #F6EEE9;
+  --ui: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101512; --surface: #19201C; --sunken: #141A17; --fg: #E4EAE6; --muted: #9BA79F; --line: #2C3630;
+    --farmer: #F0905F; --agent: #79C6AE; --helper: #A3B3EE;
+    --warn: #F2BC55; --warn-bg: #352812; --ok: #82D18F; --ok-bg: #142C19; --bad: #F2809C; --bad-bg: #36141F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101512; --surface: #19201C; --sunken: #141A17; --fg: #E4EAE6; --muted: #9BA79F; --line: #2C3630;
+  --farmer: #F0905F; --agent: #79C6AE; --helper: #A3B3EE;
+  --warn: #F2BC55; --warn-bg: #352812; --ok: #82D18F; --ok-bg: #142C19; --bad: #F2809C; --bad-bg: #36141F;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--ui); font-size: 14px; line-height: 1.6; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--helper); outline-offset: 2px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line);
+  padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+.brand { font-weight: 900; font-size: 16px; display: flex; align-items: baseline; gap: 8px; }
+.brand small { font-weight: 500; font-size: 11px; color: var(--bad); border: 1px solid currentColor; border-radius: 4px; padding: 0 5px; }
+.tabs { display: flex; gap: 4px; background: var(--sunken); border-radius: 8px; padding: 3px; }
+.tabs button { border: 0; background: none; padding: 5px 12px; border-radius: 6px; font-weight: 500; color: var(--muted); }
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgb(0 0 0 / .1); }
+.bar .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.sel, .tbtn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 4px 10px; }
+.tbtn:hover { border-color: var(--muted); }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start;
+  padding-block: 20px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1400px; margin: 0 auto; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+h2 { font-size: 15px; margin: 0 0 8px; }
+h3 { font-size: 13px; margin: 0 0 6px; color: var(--muted); font-weight: 500; letter-spacing: .04em; }
+.notice { border: 1px solid var(--bad); color: var(--bad); background: var(--bad-bg); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; }
+
+/* ── Farmer phone ── */
+.phone-wrap { display: grid; justify-items: center; gap: 10px; }
+.phone { width: 100%; max-width: 400px; min-height: 760px; border: 10px solid #1d1d1d; border-radius: 38px; background: var(--ph-bg); color: var(--ph-fg);
+  overflow: hidden; display: flex; flex-direction: column; color-scheme: light; }
+.ph-status { display: flex; justify-content: space-between; font: 500 12px var(--mono); padding: 8px 18px 0; color: var(--ph-muted); }
+.screen { flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 18px 18px 22px; font-size: 20px; line-height: 1.5; }
+.screen .step { font-size: 16px; color: var(--ph-muted); }
+.screen .q { font-size: 28px; font-weight: 900; line-height: 1.3; }
+.screen .say { font-size: 20px; color: var(--ph-muted); }
+.screen .spacer { flex: 1; }
+.pbtn { min-height: 60px; border-radius: 14px; border: 3px solid var(--ph-fg); background: var(--ph-bg); color: var(--ph-fg);
+  font-size: 22px; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 12px; width: 100%; }
+.pbtn.primary { background: var(--ph-accent); border-color: var(--ph-accent); color: #fff; }
+.pbtn.soft { border-color: var(--ph-line); font-weight: 700; font-size: 19px; min-height: 56px; }
+.pbtn.lit { outline: 5px solid #E2A100; outline-offset: 2px; }
+.pbtn .ic { font-size: 24px; line-height: 1; }
+.pgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.viewfinder { flex: 1; min-height: 260px; border: 4px dashed var(--ph-accent); border-radius: 14px; display: grid; place-items: center; text-align: center;
+  color: var(--ph-muted); font-size: 18px; overflow: hidden; background: var(--ph-soft); }
+.viewfinder img { width: 100%; height: 100%; object-fit: contain; }
+.lands { display: grid; gap: 8px; }
+.land { border: 2px solid var(--ph-line); border-radius: 12px; padding: 8px 12px; font-size: 21px; font-weight: 700; display: grid; gap: 2px; }
+.land small { font-size: 16px; font-weight: 400; color: var(--ph-muted); }
+.big-ok { font-size: 64px; text-align: center; line-height: 1; color: #1E6B2B; }
+.center { text-align: center; }
+.note { font-size: 18px; border-radius: 12px; padding: 10px 14px; background: #FFF4D6; color: #5C3D00; }
+.note.bad { background: #FCE4EA; color: #7A1230; }
+.notif { border-radius: 14px; background: #06C755; color: #fff; padding: 12px 14px; font-size: 18px; display: grid; gap: 2px; }
+.notif b { font-size: 14px; opacity: .9; }
+.listening { display: grid; place-items: center; gap: 10px; padding: 8px 0; }
+.ring { width: 96px; height: 96px; border-radius: 50%; background: var(--ph-accent); display: grid; place-items: center; color: #fff; font-size: 40px; position: relative; }
+.ring::after { content: ""; position: absolute; inset: -10px; border-radius: 50%; border: 4px solid var(--ph-accent); opacity: .5; }
+@media (prefers-reduced-motion: no-preference) {
+  .ring::after { animation: pulse 1.2s ease-out infinite; }
+  @keyframes pulse { from { transform: scale(.9); opacity: .7; } to { transform: scale(1.25); opacity: 0; } }
+}
+.heard { font-size: 18px; color: var(--ph-muted); }
+.heard b { color: var(--ph-fg); }
+.caption { font-size: 12.5px; color: var(--muted); text-align: center; max-width: 400px; }
+
+/* ── Helper review ── */
+.hv { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.kv { display: grid; gap: 2px; }
+.kv span { font-size: 12px; color: var(--muted); }
+.answers { display: grid; gap: 4px; font-size: 13px; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-size: 12px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+tr.grp td { background: var(--sunken); font-weight: 700; font-size: 12.5px; }
+tr.sel td { background: color-mix(in srgb, var(--helper) 10%, transparent); }
+td.ai { font-family: var(--mono); font-size: 12.5px; }
+td .src { font-size: 11.5px; color: var(--helper); text-decoration: underline; background: none; border: 0; padding: 0; }
+td input, .field input { width: 100%; min-width: 110px; border: 1px solid var(--line); background: var(--surface); border-radius: 5px; padding: 3px 6px; font-family: var(--mono); font-size: 12.5px; }
+.flag { font-size: 11.5px; color: var(--warn); display: block; }
+.act { display: flex; gap: 4px; }
+.act button { border: 1px solid var(--line); background: var(--surface); border-radius: 5px; padding: 2px 8px; font-size: 12px; white-space: nowrap; }
+.act button.ok:hover { border-color: var(--ok); color: var(--ok); }
+.act button.bad:hover { border-color: var(--bad); color: var(--bad); }
+.pill { font-size: 11.5px; font-weight: 500; padding: 1px 8px; border-radius: 999px; white-space: nowrap; display: inline-block; }
+.p-warn { color: var(--warn); background: var(--warn-bg); } .p-ok { color: var(--ok); background: var(--ok-bg); } .p-bad { color: var(--bad); background: var(--bad-bg); }
+.viewer { position: sticky; top: 72px; display: grid; gap: 8px; }
+.viewer .vtabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.viewer .vtabs button { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 2px 10px; font-size: 12px; }
+.viewer .vtabs button[aria-pressed="true"] { border-color: var(--helper); color: var(--helper); font-weight: 700; }
+.viewer .img { border: 1px solid var(--line); border-radius: 8px; overflow: auto; max-height: 70vh; background: var(--sunken); }
+.viewer img { display: block; width: 100%; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 10px; }
+.field { display: grid; gap: 3px; font-size: 12.5px; }
+.field label { color: var(--muted); }
+.missing { margin: 0; padding-left: 18px; font-size: 13px; display: grid; gap: 2px; }
+.missing li::marker { color: var(--bad); }
+.allok { color: var(--ok); font-weight: 700; }
+.gen { margin-top: 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.gen button { border: 0; background: var(--helper); color: var(--surface); font-weight: 700; padding: 7px 16px; border-radius: 6px; }
+
+/* ── Agreement preview (paper) ── */
+.paper-scroll { overflow-x: auto; }
+.paper { width: 1000px; background: #FFFFFF; color: #000; padding: 34px 40px 28px; margin: 0 auto 18px; border: 1px solid var(--line); box-shadow: 0 2px 10px rgb(0 0 0 / .06);
+  font-family: "DFKai-SB", "BiauKai", "標楷體", "Noto Serif TC", serif; position: relative; color-scheme: light; }
+.paper .draft { position: absolute; top: 12px; right: 18px; color: #C00000; font-weight: 700; font-size: 13px; font-family: var(--ui); }
+.paper h1 { text-align: center; font-size: 28px; letter-spacing: 1.2em; margin: 0 0 14px; padding-left: 1.2em; }
+.paper p { margin: 4px 0; font-size: 16px; }
+.paper .fill { display: inline-block; min-width: 7em; text-align: center; color: #1B2A6B; }
+.paper table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+.paper th, .paper td { border: 1px solid #000; padding: 4px 5px; text-align: center; color: #000; vertical-align: middle; }
+.paper th { font-weight: 400; font-size: 14px; }
+.paper td { height: 46px; font-size: 13px; }
+.paper td.loc { text-align: left; }
+.paper .pend { color: #C00000; }
+.paper .date { margin-top: 12px; display: flex; justify-content: space-around; font-size: 16px; }
+.paper .foot { margin-top: 6px; font-size: 15px; }
+.paper .fillv { color: #1B2A6B; white-space: pre-line; }
+
+/* ── Console ── */
+.console { display: grid; gap: 12px; position: sticky; top: 72px; }
+.console .row { display: flex; gap: 6px; flex-wrap: wrap; }
+.console .tbtn { font-size: 12.5px; }
+.console input[type=text] { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 4px 8px; }
+.chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.chips button { border: 1px solid var(--line); background: var(--sunken); border-radius: 999px; padding: 0 9px; font-size: 12px; }
+.chk { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; }
+.log { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 340px; overflow: auto; font-size: 12.5px; }
+.log li { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; }
+.log .who { font-family: var(--mono); font-size: 11px; color: var(--agent); border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; height: fit-content; white-space: nowrap; }
+.log .who.f { color: var(--farmer); } .log .who.h { color: var(--helper); }
+.log time { grid-column: 2; font: 11px var(--mono); color: var(--muted); }
+.tasks { margin: 0; padding-left: 18px; font-size: 13px; display: grid; gap: 2px; }
+.muted { color: var(--muted); }
+.hint { font-size: 12px; color: var(--muted); }
+
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .console { position: static; }
+  .hv { grid-template-columns: minmax(0, 1fr); }
+  .viewer { position: static; }
+}
+@media (max-width: 480px) {
+  .phone { border: 0; border-radius: 0; min-height: 0; }
+  .ph-status { display: none; }
+}
+</style>
+
+<header class="bar">
+  <div class="brand">農地同意書測試台 <small>虛構資料</small></div>
+  <div class="tabs" role="tablist" aria-label="畫面">
+    <button role="tab" id="tab-farmer" aria-selected="true" data-tab="farmer">農民手機</button>
+    <button role="tab" id="tab-helper" aria-selected="false" data-tab="helper">協助者核對</button>
+    <button role="tab" id="tab-doc" aria-selected="false" data-tab="doc">同意書預覽</button>
+  </div>
+  <div class="right">
+    <label class="hint" for="case">案例</label>
+    <select id="case" class="sel">
+      <option value="C01">C01 正常</option>
+      <option value="C02">C02 共有</option>
+      <option value="C03">C03 易錯</option>
+    </select>
+    <button class="tbtn" id="reset" type="button">重新開始</button>
+  </div>
+</header>
+
+<div class="layout">
+  <main id="main">
+    <div id="loadErr" class="notice" hidden></div>
+    <section id="view-farmer" class="phone-wrap" aria-label="農民手機畫面">
+      <div class="phone">
+        <div class="ph-status" aria-hidden="true"><span>09:41</span><span>4G ▮▮▮</span></div>
+        <div class="screen" id="screen"></div>
+      </div>
+      <p class="caption">手機畫面依高齡友善規則設計：內文 20px 以上、按鈕 56px 以上、一頁一題、可聽可講。</p>
+    </section>
+    <section id="view-helper" hidden aria-label="協助者核對"></section>
+    <section id="view-doc" hidden aria-label="同意書預覽"></section>
+  </main>
+
+  <aside class="console" aria-label="測試控制台">
+    <div class="panel">
+      <h2>測試控制台</h2>
+      <h3>模擬拍照</h3>
+      <div class="row">
+        <button class="tbtn" type="button" data-sim="good">用測試照片（清楚）</button>
+        <button class="tbtn" type="button" data-sim="bad">用壞照片（暗、糊）</button>
+      </div>
+      <p class="hint">也可以在手機畫面按「拍照」選自己的圖片。照片檢查真的會計算亮度與清晰度。</p>
+    </div>
+    <div class="panel">
+      <h3>模擬語音輸入</h3>
+      <form class="row" id="simVoice">
+        <input type="text" id="simText" placeholder="輸入「聽到的話」，例如：毋是" aria-label="模擬聽到的話">
+        <button class="tbtn" type="submit">送出</button>
+      </form>
+      <div class="chips" aria-label="常用測試詞">
+        <button type="button" data-say="是">是</button><button type="button" data-say="著">著</button>
+        <button type="button" data-say="毋是">毋是</button><button type="button" data-say="不是啦">不是啦</button>
+        <button type="button" data-say="毋知">毋知</button><button type="button" data-say="我自己種">我自己種</button>
+        <button type="button" data-say="予人種">予人種</button><button type="button" data-say="稅予人">稅予人</button>
+        <button type="button" data-say="輪流種">輪流種</button><button type="button" data-say="今天天氣很好">（聽不懂的話）</button>
+      </div>
+      <p class="hint" id="voiceSupport"></p>
+    </div>
+    <div class="panel">
+      <h3>朗讀（Qwen3 TTS）</h3>
+      <div class="row" role="radiogroup" aria-label="朗讀語言">
+        <label class="chk"><input type="radio" name="vlang" value="zh" checked> 國語</label>
+        <label class="chk"><input type="radio" name="vlang" value="nan"> 台語</label>
+      </div>
+      <p class="hint" id="ttsStatus"></p>
+    </div>
+    <div class="panel">
+      <h3>擷取 agent</h3>
+      <label class="chk"><input type="checkbox" id="aiError"> 模擬 AI 讀錯第一筆土地的面積（測試協助者能不能抓到）</label>
+    </div>
+    <div class="panel">
+      <h3>給協助者的任務</h3>
+      <ul class="tasks" id="tasks"></ul>
+    </div>
+    <div class="panel">
+      <h3>背景 agent 紀錄</h3>
+      <ul class="log" id="log"></ul>
+    </div>
+  </aside>
+</div>
+
+<input type="file" id="camera" accept="image/*" capture="environment" hidden>
+
+<script>
+(() => {
+  // ───────── helpers
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const BASE = /\/web\/[^/]*$/.test(location.pathname) ? "../" : "";
+  const dataUrl = (id, f) => `${BASE}data/samples/fake-transcripts/${id}/${f}`;
+  const PENDING = "待確認";
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const now = () => new Date().toLocaleTimeString("zh-TW", { hour12: false });
+
+  // ───────── questions & voice keywords (docs/voice-design.md 第 4 節)
+  const QUESTIONS = [
+    { key: "q1", kind: "yesno", text: "這幾筆是你的地嗎？", speak: "這幾筆，是你的地嗎？請說，是，或是，不是。",
+      options: [{ v: "yes", label: "是", ic: "✔" }, { v: "no", label: "不是", ic: "✘" }] },
+    { key: "q2", kind: "who", text: "這些地是誰在種？", speak: "這些地，是誰在種？是你自己，還是別人？",
+      options: [{ v: "self", label: "我自己", ic: "⌂" }, { v: "other", label: "別人", ic: "➜" }] },
+    { key: "q3", kind: "cat", text: "用什麼方式給人種？", speak: "用什麼方式給人種？承租、託耕、輪耕，還是分耕？",
+      options: [{ v: "承租", label: "承租", ic: "▣" }, { v: "託耕", label: "託耕", ic: "▣" }, { v: "輪耕", label: "輪耕", ic: "▣" }, { v: "分耕", label: "分耕", ic: "▣" }] },
+  ];
+  const LABEL = { yes: "是", no: "不是", unsure: "我不確定", self: "我自己", other: "別人", 承租: "承租", 託耕: "託耕", 輪耕: "輪耕", 分耕: "分耕" };
+  const KW = {
+    unsure: ["不知道", "不確定", "不清楚", "不曉得", "毋知", "無清楚", "袂記得"],
+    no: ["不是", "不對", "沒有", "錯了", "毋是", "毋著", "毋對", "無"],
+    // 不收「好、嗯、有」：太常出現在一般句子或語助詞，會被誤判成「是」
+    yes: ["是", "對", "沒錯", "著", "係", "嘿"],
+    other: ["別人", "人家", "別的人", "其他人", "予人", "佮人", "租給", "給人", "租人"],
+    self: ["我自己", "自己", "家己", "我"],
+    承租: ["承租", "租", "稅"], 託耕: ["託耕", "託", "代耕", "代種"], 輪耕: ["輪耕", "輪"], 分耕: ["分耕", "分"],
+  };
+  const hit = (k, t) => KW[k].some((w) => t.includes(w));
+  function match(kind, raw) {
+    const t = String(raw).replace(/[\s，。！？、,.!?]/g, "");
+    if (!t) return null;
+    if (hit("unsure", t)) return "unsure";
+    if (kind === "yesno") return hit("no", t) ? "no" : hit("yes", t) ? "yes" : null;
+    if (kind === "who") return hit("other", t) ? "other" : hit("self", t) ? "self" : null;
+    if (kind === "cat") {
+      const found = ["承租", "託耕", "輪耕", "分耕"].filter((c) => hit(c, t));
+      return found.length === 1 ? found[0] : null;
+    }
+    return null;
+  }
+
+  // ───────── state
+  let st;
+  function fresh(caseId, data) {
+    return {
+      caseId, data, tab: st?.tab || "farmer",
+      step: "photo", photoIdx: 0, photos: [], photoMsg: "", ready: false,
+      qIdx: 0, qMode: "wait", pendingAns: null, fails: 0, voiceNote: "", heard: "",
+      answers: {}, claims: [], tasks: [], log: [], selected: null, viewerFile: "page1.png",
+      manual: { ha: {}, right: {}, period: "", cultivator: "" },
+    };
+  }
+  const pageCount = () => Math.max(...st.data.parcels.map((p) => p.source.page), ...st.data.ownerships.map((o) => o.source.page));
+
+  function log(who, text) { st.log.unshift({ who, text, t: now() }); renderConsole(); }
+  function task(text) { st.tasks.push(text); renderConsole(); }
+
+  // ───────── speech：優先播 Qwen3 TTS 預先產生的音檔（web/audio/manifest.json），沒有才用瀏覽器內建語音
+  let voices = [], audioMap = {}, audioCount = 0, voiceLang = "zh", lastSource = "";
+  const player = new Audio();
+  if ("speechSynthesis" in window) {
+    const load = () => (voices = speechSynthesis.getVoices());
+    load(); speechSynthesis.onvoiceschanged = load;
+  }
+  async function loadAudio() {
+    try {
+      const r = await fetch(`${BASE}web/audio/manifest.json`, { cache: "no-store" });
+      if (!r.ok) throw new Error(r.status);
+      const m = await r.json();
+      for (const e of Object.values(m.items || {})) if (e.zh_text) { audioMap[e.zh_text] = e.files || {}; audioCount += Object.keys(e.files || {}).length; }
+    } catch (e) { /* 還沒產生音檔 */ }
+    renderVoiceStatus();
+  }
+  function stopSpeech() {
+    try { player.pause(); } catch (e) {}
+    try { speechSynthesis?.cancel(); } catch (e) {}
+  }
+  function speak(text) {
+    stopSpeech();
+    const file = audioMap[text]?.[voiceLang];
+    if (file) {
+      player.src = `${BASE}web/audio/${file}`;
+      player.play().then(() => { lastSource = `Qwen3 TTS 音檔（${voiceLang === "nan" ? "台語" : "國語"}）`; renderVoiceStatus(); })
+        .catch(() => browserSpeak(text));
+      return;
+    }
+    browserSpeak(text);
+  }
+  function browserSpeak(text) {
+    lastSource = voiceLang === "nan" ? "台語音檔還沒產生，暫用瀏覽器國語語音" : "瀏覽器內建語音（備援）";
+    renderVoiceStatus();
+    try {
+      if (!("speechSynthesis" in window)) return;
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "zh-TW"; u.rate = 0.85;
+      const v = voices.find((x) => x.lang === "zh-TW") || voices.find((x) => /zh/i.test(x.lang));
+      if (v) u.voice = v;
+      speechSynthesis.speak(u);
+    } catch (e) { /* 朗讀失敗不影響流程 */ }
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recog = null;
+  function listen() {
+    st.qMode = st.qMode === "readback" ? "readback-listen" : "listen";
+    st.voiceNote = ""; st.heard = "";
+    stopSpeech();
+    renderScreen();
+    if (!SR) { st.voiceNote = "這個瀏覽器不能收音。請用右邊「模擬語音輸入」，或按下面的按鈕。"; renderScreen(); return; }
+    try {
+      const r = new SR(); recog = r; let got = false;
+      r.lang = "zh-TW"; r.interimResults = false; r.maxAlternatives = 3;
+      r.onresult = (e) => { got = true; heard([...e.results[0]].map((a) => a.transcript)); };
+      r.onerror = (e) => {
+        got = true;
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+          st.voiceNote = "麥克風沒有打開（或這個網頁不能用麥克風）。請用按鈕回答，或用右邊的模擬輸入。";
+          st.qMode = st.qMode.startsWith("readback") ? "readback" : "wait"; renderScreen();
+        } else heard([]);
+      };
+      r.onend = () => { recog = null; if (!got && isListening()) heard([]); };
+      r.start();
+    } catch (e) { st.voiceNote = "無法開始收音，請用按鈕回答。"; renderScreen(); }
+  }
+  const isListening = () => st.qMode === "listen" || st.qMode === "readback-listen";
+
+  function heard(alts) {
+    if (st.step !== "question" || !isListening()) return;
+    const inReadback = st.qMode === "readback-listen";
+    const kind = inReadback ? "yesno" : QUESTIONS[st.qIdx].kind;
+    st.heard = alts[0] || "";
+    for (const a of alts) {
+      const v = match(kind, a);
+      if (v) return onVoice(v, a, inReadback);
+    }
+    st.fails += 1;
+    log("語音", `聽不懂：「${st.heard || "（沒有聲音）"}」（第 ${st.fails} 次）`);
+    st.qMode = inReadback ? "readback" : "wait";
+    if (st.fails >= 2) { st.voiceNote = "我沒聽清楚，請按下面的按鈕。"; speak("我沒聽清楚，請按下面的按鈕。"); }
+    else { st.voiceNote = "我沒聽清楚，請再講一次。"; speak("我沒聽清楚，請再講一次。"); }
+    renderScreen();
+  }
+  function onVoice(v, transcript, inReadback) {
+    st.voiceNote = "";
+    if (!inReadback) {
+      st.pendingAns = { v, transcript }; st.qMode = "readback";
+      log("語音", `聽到「${transcript}」→ 判斷為「${LABEL[v]}」，唸回確認`);
+      speak(`你講，${LABEL[v]}，對嗎？`);
+      renderScreen(); return;
+    }
+    if (v === "yes") commit(st.pendingAns.v, "語音", st.pendingAns.transcript);
+    else { st.pendingAns = null; st.qMode = "wait"; st.fails = 0; speak("好，請再回答一次。"); renderScreen(); }
+  }
+
+  // ───────── farmer flow
+  function commit(v, channel, transcript = "") {
+    const q = QUESTIONS[st.qIdx];
+    st.answers[q.key] = { v, channel, transcript };
+    log("農民", `第 ${st.qIdx + 1} 題回答「${LABEL[v]}」（${channel}${transcript ? `，原文：${transcript}` : ""}）`);
+    if (v === "unsure") task(`農民對第 ${st.qIdx + 1} 題「${q.text}」按了我不確定，請聯絡確認`);
+    if (q.key === "q1" && v === "no") task("農民說這幾筆不是他的地，請確認謄本是否拿錯");
+    if (q.key === "q2" && v === "other") task("農民說由別人耕作，請補上耕作人姓名及 ID");
+    st.pendingAns = null; st.fails = 0; st.voiceNote = ""; st.heard = "";
+    if (st.qIdx < QUESTIONS.length - 1) { st.qIdx += 1; st.qMode = "wait"; renderScreen(); speak(QUESTIONS[st.qIdx].speak); }
+    else { st.step = "done"; renderAll(); speak("謝謝你，回答完了。同意書準備好以後，協助者會跟你約時間，帶印章來簽名。"); }
+  }
+
+  async function loadImg(src) {
+    return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+  }
+  // ① 收件 agent：亮度與清晰度（拉普拉斯變異數）
+  async function measure(src) {
+    const img = await loadImg(src);
+    const W = 320, H = Math.max(1, Math.round((img.height * W) / img.width));
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const ctx = c.getContext("2d", { willReadFrequently: true }); ctx.drawImage(img, 0, 0, W, H);
+    const d = ctx.getImageData(0, 0, W, H).data, g = new Float32Array(W * H);
+    let sum = 0;
+    for (let i = 0; i < W * H; i++) { const v = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2]; g[i] = v; sum += v; }
+    const mean = sum / (W * H);
+    let s = 0, s2 = 0, n = 0;
+    for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+      const i = y * W + x, L = 4 * g[i] - g[i - 1] - g[i + 1] - g[i - W] - g[i + W];
+      s += L; s2 += L * L; n++;
+    }
+    const sharp = s2 / n - (s / n) ** 2;
+    return { mean, sharp };
+  }
+  const MIN_MEAN = 90, MIN_SHARP = 60;
+  async function takePhoto(src, label) {
+    if (st.step !== "photo") return;
+    st.preview = src; st.photoMsg = "檢查中…"; st.photoBad = false; renderScreen();
+    try {
+      const m = await measure(src);
+      const why = m.mean < MIN_MEAN ? "太暗" : m.sharp < MIN_SHARP ? "太模糊" : "";
+      log("① 收件", `第 ${st.photoIdx + 1} 張（${label}）亮度 ${m.mean.toFixed(0)}、清晰度 ${m.sharp.toFixed(0)} → ${why ? "退回：" + why : "通過"}`);
+      if (why) {
+        st.photoBad = true;
+        st.photoMsg = why === "太暗" ? "照片有點暗，請到亮一點的地方再拍一次。" : "照片有點糊，請拿穩手機，再拍一次。";
+        speak(st.photoMsg); renderScreen(); return;
+      }
+      st.photos[st.photoIdx] = src; st.photoMsg = ""; st.preview = null;
+      if (st.photoIdx + 1 < pageCount()) { st.photoIdx += 1; speak(`很好。請拍第 ${st.photoIdx + 1} 張。`); renderScreen(); }
+      else { st.step = "received"; renderAll(); speak("收到了。接下來不用做事，好了會請你回答幾個問題。"); runAgents(); }
+    } catch (e) {
+      st.photoMsg = "照片打不開，請再拍一次。"; st.photoBad = true; renderScreen();
+    }
+  }
+
+  // ───────── background agents ②③④
+  function buildClaims() {
+    const d = st.data, claims = [];
+    const pendNote = (pid, field) => (d.pending || []).find((p) => p.parcel_id === pid && p.field === field)?.note;
+    d.parcels.forEach((p, i) => {
+      let area = p.area_raw;
+      if (i === 0 && $("#aiError").checked) area = area.replace(/\d(?=[^\d]*\.)/, (x) => String((+x + 5) % 10));
+      const loc = `${p.county}${p.township}${p.section}${p.subsection || ""}`;
+      claims.push({ id: `${p.parcel_id}-loc`, pid: p.parcel_id, label: "坐落（縣鄉段）", ai: loc, src: p.source });
+      claims.push({ id: `${p.parcel_id}-lot`, pid: p.parcel_id, label: "地號", ai: p.lot_no, src: p.source });
+      claims.push({ id: `${p.parcel_id}-area`, pid: p.parcel_id, label: "面積（平方公尺）", ai: area, src: p.source });
+    });
+    d.ownerships.forEach((o, k) => {
+      const oid = `${o.parcel_id}-O${k + 1}`;
+      claims.push({ id: `${oid}-owner`, pid: o.parcel_id, oid, label: "所有權人", ai: o.owner, src: o.source });
+      claims.push({ id: `${oid}-id`, pid: o.parcel_id, oid, label: "統一編號", ai: o.id_masked, src: o.source });
+      claims.push({ id: `${oid}-share`, pid: o.parcel_id, oid, label: "權利範圍", ai: o.share_raw, src: o.source, note: pendNote(o.parcel_id, "權利範圍") });
+    });
+    for (const c of claims) {
+      if (c.ai === PENDING) { c.ai = ""; c.note = c.note ? "看不清：" + c.note.slice(0, 40) : "看不清"; }
+      c.value = c.ai; c.status = "pending"; c.flags = [];
+    }
+    return claims;
+  }
+  function checkRules(claims) {
+    const d = st.data, flags = [];
+    const lots = claims.filter((c) => c.label === "地號");
+    for (const c of lots) {
+      if (!/^\d{4}-\d{4}$/.test(c.ai)) { c.flags.push("地號格式不是 0000-0000"); flags.push(`${c.pid} 地號格式異常`); }
+      const same = lots.filter((x) => x !== c && x.ai === c.ai);
+      if (same.length) c.flags.push("另一筆土地有相同地號，請核對段名");
+    }
+    if (lots.some((c) => c.flags.length)) flags.push("有相同地號但段名不同的土地");
+    for (const p of d.parcels) {
+      const os = d.ownerships.filter((o) => o.parcel_id === p.parcel_id);
+      if (os.every((o) => typeof o.share_num === "number")) {
+        const sum = os.reduce((a, o) => a + o.share_num / o.share_den, 0);
+        if (Math.abs(sum - 1) > 1e-9) { flags.push(`${p.parcel_id} 持分加總不是 1`); }
+      } else flags.push(`${p.parcel_id} 權利範圍有看不清的部分`);
+    }
+    return flags;
+  }
+  async function runAgents() {
+    await sleep(500);
+    st.claims = buildClaims();
+    log("② 擷取", `讀到 ${st.data.parcels.length} 筆土地、${st.data.ownerships.length} 筆所有權，共 ${st.claims.length} 個欄位，全部「待確認」${$("#aiError").checked ? "（測試：已故意讀錯一個面積）" : ""}`);
+    await sleep(500);
+    const flags = checkRules(st.claims);
+    log("③ 核對", flags.length ? "發現：" + flags.join("；") : "規則檢查沒有發現問題");
+    await sleep(500);
+    log("④ 分派", `3 題給農民（本人最清楚的事）；${st.claims.length} 個謄本欄位給協助者`);
+    task(`核對 ${st.claims.length} 個謄本欄位，並補上公頃面積與實施期間`);
+    st.ready = true; renderAll();
+  }
+
+  // ───────── helper: completeness (⑤ 文件 agent 的送出條件)
+  function missing() {
+    const out = [];
+    if (!st.claims.length) return ["農民還沒拍完謄本"];
+    for (const c of st.claims) {
+      if (c.status === "bad") out.push(`已退回：${c.pid} ${c.label}`);
+      else if (c.status !== "ok") out.push(`未確認：${c.pid} ${c.label}`);
+    }
+    const a = st.answers;
+    if (!a.q1) out.push("農民還沒回答：這是你的地嗎"); else if (a.q1.v !== "yes") out.push(`第 1 題：農民回答「${LABEL[a.q1.v]}」，需協助者處理`);
+    if (!a.q2) out.push("農民還沒回答：誰在種"); else if (a.q2.v === "unsure") out.push("第 2 題：農民不確定");
+    if (!a.q3) out.push("農民還沒回答：耕作方式"); else if (a.q3.v === "unsure") out.push("第 3 題：農民不確定");
+    const m = st.manual;
+    for (const p of st.data.parcels) if (!m.ha[p.parcel_id]) out.push(`未填：${p.parcel_id} 本筆面積（公頃）`);
+    st.data.ownerships.forEach((o, k) => { const oid = `${o.parcel_id}-O${k + 1}`; if (!m.right[oid]) out.push(`未填：${oid} 權利面積（公頃）`); });
+    if (!m.period) out.push("未填：實施期間");
+    if (!m.cultivator) out.push("未填：耕作人及 ID");
+    return out;
+  }
+  const cv = (id) => { const c = st.claims.find((x) => x.id === id); return c && c.status === "ok" ? c.value : null; };
+
+  // ───────── render: farmer
+  function renderScreen() {
+    const s = $("#screen"); if (!st) return;
+    const total = pageCount();
+    let h = "";
+    if (st.step === "photo") {
+      h = `<div class="step">第 ${st.photoIdx + 1} 張，共 ${total} 張</div>
+        <div class="q">請拍土地謄本</div>
+        <div class="viewfinder">${st.preview ? `<img src="${esc(st.preview)}" alt="剛拍的照片">` : "對準框框<br>整張紙都要拍進來"}</div>
+        ${st.photoMsg ? `<div class="note ${st.photoBad ? "bad" : ""}">${esc(st.photoMsg)}</div>` : ""}
+        <button class="pbtn primary" data-act="shoot"><span class="ic">◉</span>拍照</button>`;
+    } else if (st.step === "received") {
+      h = `<div class="spacer"></div><div class="big-ok" aria-hidden="true">✔</div>
+        <div class="q center">收到 ${total} 張了</div>
+        <div class="say center">接下來不用做事。<br>好了會請你回答幾個問題。</div>
+        <div class="spacer"></div>
+        ${st.ready ? `<div class="notif" role="status"><b>LINE 通知（模擬）</b>有 3 個問題要請你回答</div>
+        <button class="pbtn primary" data-act="start"><span class="ic">▶</span>開始回答</button>`
+        : `<div class="say center">處理中…</div>`}`;
+    } else if (st.step === "question") {
+      const q = QUESTIONS[st.qIdx];
+      const lands = q.key === "q1" ? `<div class="lands">${st.data.parcels.map((p) =>
+        `<div class="land">${esc(p.section)}${esc(p.subsection || "")} ${esc(p.lot_no)}<small>${esc(p.township)}</small></div>`).join("")}</div>` : "";
+      const opts = q.options.map((o) => `<button class="pbtn ${st.pendingAns?.v === o.v ? "lit" : ""}" data-act="answer" data-v="${esc(o.v)}"><span class="ic">${o.ic}</span>${esc(o.label)}</button>`).join("");
+      let voiceBlock;
+      if (st.qMode === "listen" || st.qMode === "readback-listen") {
+        voiceBlock = `<div class="listening" role="status"><div class="ring" aria-hidden="true">●</div><div class="say">正在聽，請說${st.qMode === "readback-listen" ? "：對，或 不對" : "答案"}</div></div>`;
+      } else if (st.qMode === "readback") {
+        voiceBlock = `<div class="note">你講「<b>${esc(LABEL[st.pendingAns.v])}</b>」，對嗎？</div>
+          <div class="pgrid"><button class="pbtn primary" data-act="rb-yes"><span class="ic">✔</span>對</button><button class="pbtn" data-act="rb-no"><span class="ic">✘</span>不對</button></div>
+          <button class="pbtn soft" data-act="listen"><span class="ic">●</span>用講的回答</button>`;
+      } else {
+        voiceBlock = `<button class="pbtn primary" data-act="listen"><span class="ic">●</span>按一下，用講的</button>`;
+      }
+      h = `<div class="step">第 ${st.qIdx + 1} 題，共 3 題</div>
+        <div class="q">${esc(q.text)}</div>${lands}
+        <button class="pbtn soft" data-act="repeat"><span class="ic">♪</span>再唸一次</button>
+        ${st.heard ? `<div class="heard">聽到：<b>${esc(st.heard)}</b></div>` : ""}
+        ${st.voiceNote ? `<div class="note bad">${esc(st.voiceNote)}</div>` : ""}
+        ${voiceBlock}
+        <div class="spacer"></div>
+        <div class="${q.options.length > 2 ? "pgrid" : "pgrid"}">${opts}</div>
+        <button class="pbtn soft" data-act="answer" data-v="unsure"><span class="ic">？</span>我不確定</button>
+        ${st.qIdx > 0 ? `<button class="pbtn soft" data-act="back"><span class="ic">←</span>回上一題</button>` : ""}`;
+    } else if (st.step === "done") {
+      h = `<div class="spacer"></div><div class="big-ok" aria-hidden="true">✔</div>
+        <div class="q center">謝謝你，回答完了</div>
+        <div class="say center">同意書準備好以後，協助者會跟你約時間，帶印章來簽名。</div>
+        <div class="spacer"></div>
+        <button class="pbtn" data-act="call"><span class="ic">☎</span>打給協助者</button>`;
+    }
+    s.innerHTML = h;
+  }
+
+  // ───────── render: helper
+  function statusPill(c) {
+    return c.status === "ok" ? `<span class="pill p-ok">已確認</span>` : c.status === "bad" ? `<span class="pill p-bad">退回</span>` : `<span class="pill p-warn">待確認</span>`;
+  }
+  function renderHelper() {
+    const v = $("#view-helper");
+    if (!st.claims.length) { v.innerHTML = `<div class="panel"><h2>協助者核對</h2><p class="muted">農民還沒拍完謄本。請先在「農民手機」拍照，或在測試控制台按「用測試照片」。</p></div>`; return; }
+    const a = st.answers;
+    const ans = QUESTIONS.map((q, i) => {
+      const x = a[q.key];
+      return `<div>第 ${i + 1} 題 ${esc(q.text)}：${x ? `<b>${esc(LABEL[x.v])}</b> <span class="muted">（${esc(x.channel)}${x.transcript ? `，原文「${esc(x.transcript)}」` : ""}）</span>` : `<span class="muted">尚未回答</span>`}</div>`;
+    }).join("");
+    let rows = "", lastPid = null, lastO = null;
+    for (const c of st.claims) {
+      if (c.pid !== lastPid) {
+        const p = st.data.parcels.find((x) => x.parcel_id === c.pid);
+        rows += `<tr class="grp"><td colspan="6">${esc(c.pid)}　${esc(p.section)}${esc(p.subsection || "")} ${esc(p.lot_no)}</td></tr>`;
+        lastPid = c.pid; lastO = null;
+      }
+      if (c.oid && c.oid !== lastO) { rows += `<tr class="grp"><td colspan="6" style="font-weight:500">所有權 ${esc(c.oid)}</td></tr>`; lastO = c.oid; }
+      rows += `<tr class="${st.selected === c.id ? "sel" : ""}" data-row="${esc(c.id)}">
+        <td>${esc(c.label)}${c.note ? `<span class="flag">${esc(c.note)}</span>` : ""}${c.flags.map((f) => `<span class="flag">${esc(f)}</span>`).join("")}</td>
+        <td class="ai">${c.ai ? esc(c.ai) : `<span class="muted">（空白）</span>`}</td>
+        <td><button class="src" data-src="${esc(c.src.file)}" data-row="${esc(c.id)}">第 ${c.src.page} 頁</button></td>
+        <td><input data-edit="${esc(c.id)}" value="${esc(c.value)}" aria-label="${esc(c.label)} 確認值"></td>
+        <td>${statusPill(c)}</td>
+        <td><div class="act"><button class="ok" data-confirm="${esc(c.id)}">確認</button><button class="bad" data-reject="${esc(c.id)}">退回</button></div></td></tr>`;
+    }
+    const m = st.manual;
+    const haFields = st.data.parcels.map((p) => `<div class="field"><label for="ha-${p.parcel_id}">${esc(p.parcel_id)} 本筆面積（公頃）</label><input id="ha-${p.parcel_id}" data-ha="${esc(p.parcel_id)}" value="${esc(m.ha[p.parcel_id] || "")}" placeholder="人工填寫"></div>`).join("");
+    const rFields = st.data.ownerships.map((o, k) => { const oid = `${o.parcel_id}-O${k + 1}`; return `<div class="field"><label for="r-${oid}">${esc(oid)} ${esc(o.owner)} 權利面積（公頃）</label><input id="r-${oid}" data-right="${esc(oid)}" value="${esc(m.right[oid] || "")}" placeholder="人工填寫"></div>`; }).join("");
+    const miss = missing();
+    const files = ["page1.png", "page2.png", "photo_page1.jpg"].filter((f) => f !== "page2.png" || pageCount() > 1);
+    v.innerHTML = `
+      <div class="panel" style="margin-bottom:16px">
+        <h2>協助者核對　<span class="muted" style="font-weight:400">${esc(st.caseId)}・${esc(st.data.description || "")}</span></h2>
+        <div class="summary">
+          <div class="kv"><span>農民的回答</span><div class="answers">${ans}</div></div>
+          <div class="kv"><span>還不能出正式版的原因（${miss.length}）</span>${miss.length ? `<ul class="missing">${miss.slice(0, 8).map((x) => `<li>${esc(x)}</li>`).join("")}${miss.length > 8 ? `<li>…還有 ${miss.length - 8} 項</li>` : ""}</ul>` : `<div class="allok">全部完成，可以出正式版</div>`}</div>
+        </div>
+        <div class="gen"><button type="button" data-act="confirm-all">全部照 AI 值確認（測試用）</button><span class="hint">實際使用時應逐欄對照圖片確認。</span></div>
+      </div>
+      <div class="hv">
+        <div class="panel">
+          <h3>謄本欄位（AI 只提議，人確認後才算數）</h3>
+          <div class="tbl"><table><thead><tr><th>欄位</th><th>AI 讀到</th><th>來源</th><th>確認值</th><th>狀態</th><th>動作</th></tr></thead><tbody>${rows}</tbody></table></div>
+          <h3 style="margin-top:16px">人工欄位（謄本沒有，或換算規則未確認，由協助者填）</h3>
+          <div class="fields">
+            ${haFields}${rFields}
+            <div class="field"><label for="period">實施期間</label><input id="period" data-m="period" value="${esc(m.period)}" placeholder="例：116.01.01起 118.12.31止"></div>
+            <div class="field"><label for="cult">耕作人及 ID（乙方）</label><input id="cult" data-m="cultivator" value="${esc(m.cultivator)}" placeholder="例：農民D D45678****"></div>
+          </div>
+        </div>
+        <div class="viewer panel">
+          <div class="vtabs">${files.map((f) => `<button type="button" data-view="${f}" aria-pressed="${st.viewerFile === f}">${f === "photo_page1.jpg" ? "農民拍的照片" : f.replace("page", "第 ").replace(".png", " 頁")}</button>`).join("")}</div>
+          <div class="img"><img src="${esc(dataUrl(st.caseId, st.viewerFile))}" alt="謄本 ${esc(st.viewerFile)}"></div>
+          <p class="hint">點表格的「第 N 頁」會切換到該頁。</p>
+        </div>
+      </div>`;
+  }
+
+  // ───────── render: agreement preview
+  function renderDoc() {
+    const v = $("#view-doc");
+    const miss = missing(), draft = miss.length > 0, a = st.answers, m = st.manual;
+    if (!st.claims.length) { v.innerHTML = `<div class="panel"><h2>同意書預覽</h2><p class="muted">還沒有資料。</p></div>`; return; }
+    const owners = [...new Set(st.data.ownerships.map((o) => o.owner))];
+    const P = (x) => (x ? `<span class="fillv">${esc(x)}</span>` : `<span class="pend">${PENDING}</span>`);
+    const docs = owners.map((owner) => {
+      const lines = st.data.ownerships.map((o, k) => ({ o, oid: `${o.parcel_id}-O${k + 1}` })).filter((x) => x.o.owner === owner);
+      const ownerName = cv(`${lines[0].oid}-owner`);
+      const cult = m.cultivator;
+      const rows = [];
+      for (let i = 0; i < 8; i++) {
+        const L = lines[i];
+        if (!L) { rows.push(`<tr>${"<td></td>".repeat(10)}</tr>`); continue; }
+        const pid = L.o.parcel_id, loc = cv(`${pid}-loc`), lot = cv(`${pid}-lot`);
+        const own = cv(`${L.oid}-owner`), id = cv(`${L.oid}-id`);
+        rows.push(`<tr>
+          <td>${a.q3 && a.q3.v !== "unsure" ? P(a.q3.v) : P(null)}</td>
+          <td class="loc">${loc && lot ? `<span class="fillv">${esc(loc)}\n${esc(lot)}</span>` : P(null)}</td>
+          <td>${P(m.ha[pid])}</td><td>${P(m.right[L.oid])}</td><td>${P(m.period)}</td>
+          <td>${own && id ? `<span class="fillv">${esc(own)}\n${esc(id)}</span>` : P(null)}</td><td></td>
+          <td>${P(cult)}</td><td></td><td></td></tr>`);
+      }
+      return `<div class="paper-scroll"><div class="paper">
+        ${draft ? `<div class="draft">草稿｜尚有「待確認」欄位，不得作為正式文件</div>` : ""}
+        <h1>土地使用同意書</h1>
+        <p>本耕地所有權人（以下簡稱甲方）<span class="fill">${esc(ownerName || "")}</span>持有下列耕地，經雙方協議同意由委由耕作人</p>
+        <p>（以下簡稱乙方）<span class="fill">${esc((cult || "").split(/\s/)[0])}</span>等從事農業耕作，特立此協議書為證。</p>
+        <table><thead>
+          <tr><th rowspan="2" style="width:4%">類<br>別</th><th rowspan="2" style="width:16%">土地坐落<br>及地號</th><th rowspan="2" style="width:10%">本筆面積<br>（公頃）</th><th rowspan="2" style="width:10%">權利面積<br>（公頃）</th><th rowspan="2" style="width:12%">實施期間</th><th colspan="2">甲　　方</th><th colspan="2">乙　　方</th><th rowspan="2" style="width:6%">備註</th></tr>
+          <tr><th style="width:15%">所有權人<br>及 ID</th><th style="width:6%">簽名<br>蓋章</th><th style="width:15%">耕作人<br>及 ID</th><th style="width:6%">簽名<br>蓋章</th></tr>
+        </thead><tbody>${rows.join("")}</tbody></table>
+        <div class="date"><span>中　華　民　國</span><span>年</span><span>月</span><span>日</span></div>
+        <div class="foot">類別：指分耕、輪耕、託耕、承租。</div>
+      </div></div>`;
+    }).join("");
+    v.innerHTML = `<div class="panel" style="margin-bottom:16px">
+        <h2>同意書預覽　${draft ? `<span class="pill p-warn">草稿</span>` : `<span class="pill p-ok">可出正式版</span>`}</h2>
+        <p class="hint">一位所有權人一份（共 ${owners.length} 份）。這裡是預覽；正式 Word 檔由 <code>tools/make_agreement.py</code> 產生。紅字「待確認」代表欄位還沒被人確認。</p>
+        ${draft ? `<ul class="missing">${miss.slice(0, 6).map((x) => `<li>${esc(x)}</li>`).join("")}${miss.length > 6 ? `<li>…還有 ${miss.length - 6} 項</li>` : ""}</ul>` : ""}
+      </div>${docs}`;
+  }
+
+  // ───────── render: console & all
+  function renderConsole() {
+    $("#log").innerHTML = st.log.map((l) => {
+      const cls = l.who === "農民" ? "f" : l.who.startsWith("協助") ? "h" : "";
+      return `<li><span class="who ${cls}">${esc(l.who)}</span><span>${esc(l.text)}</span><time>${esc(l.t)}</time></li>`;
+    }).join("") || `<li class="muted">尚無紀錄</li>`;
+    $("#tasks").innerHTML = st.tasks.map((t) => `<li>${esc(t)}</li>`).join("") || `<li class="muted" style="list-style:none;margin-left:-18px">目前沒有</li>`;
+  }
+  function renderAll() {
+    for (const t of ["farmer", "helper", "doc"]) {
+      $(`#view-${t}`).hidden = st.tab !== t;
+      $(`#tab-${t}`).setAttribute("aria-selected", String(st.tab === t));
+    }
+    renderScreen();
+    if (st.tab === "helper") renderHelper();
+    if (st.tab === "doc") renderDoc();
+    renderConsole();
+  }
+
+  // ───────── events
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("button"); if (!t || !st) return;
+    if (t.dataset.tab) { st.tab = t.dataset.tab; renderAll(); return; }
+    const act = t.dataset.act;
+    if (act === "shoot") { $("#camera").click(); return; }
+    if (act === "start") { st.step = "question"; st.qIdx = 0; st.qMode = "wait"; renderAll(); speak(QUESTIONS[0].speak); return; }
+    if (act === "repeat") { speak(QUESTIONS[st.qIdx].speak); return; }
+    if (act === "listen") { listen(); return; }
+    if (act === "answer") { try { recog?.abort(); } catch (x) {} commit(t.dataset.v, "按鈕"); return; }
+    if (act === "rb-yes") commit(st.pendingAns.v, "語音", st.pendingAns.transcript);
+    if (act === "rb-no") { st.pendingAns = null; st.qMode = "wait"; st.fails = 0; speak("好，請再回答一次。"); renderScreen(); }
+    if (act === "back") { st.qIdx -= 1; st.qMode = "wait"; st.pendingAns = null; renderScreen(); speak(QUESTIONS[st.qIdx].speak); }
+    if (act === "call") { log("農民", "按了「打給協助者」（測試：不會真的撥號）"); }
+    if (act === "confirm-all") { for (const c of st.claims) if (c.value) { c.status = "ok"; } log("協助者", "測試：把有值的欄位全部確認"); renderAll(); }
+    if (t.dataset.sim) {
+      if (st.step !== "photo") { log("測試", "現在不是拍照步驟，請先按「重新開始」"); return; }
+      const src = t.dataset.sim === "bad" ? dataUrl("C03", "photo_page1_bad.jpg")
+        : st.photoIdx === 0 ? dataUrl(st.caseId, "photo_page1.jpg") : dataUrl(st.caseId, `page${st.photoIdx + 1}.png`);
+      takePhoto(src, t.dataset.sim === "bad" ? "測試壞照片" : "測試照片"); return;
+    }
+    if (t.dataset.say) { simulateHeard(t.dataset.say); return; }
+    if (t.dataset.view) { st.viewerFile = t.dataset.view; renderHelper(); return; }
+    if (t.dataset.src) { st.viewerFile = t.dataset.src; st.selected = t.dataset.row; renderHelper(); return; }
+    if (t.dataset.confirm) {
+      const c = st.claims.find((x) => x.id === t.dataset.confirm);
+      if (!c.value) { c.status = "pending"; log("協助者", `${c.pid} ${c.label} 沒有值，不能確認`); renderAll(); return; }
+      const changed = c.value !== c.ai; c.status = "ok"; st.selected = c.id;
+      log("協助者", `確認 ${c.pid} ${c.label}${changed ? `：修正「${c.ai || "空白"}」→「${c.value}」` : ""}`); renderAll(); return;
+    }
+    if (t.dataset.reject) {
+      const c = st.claims.find((x) => x.id === t.dataset.reject); c.status = "bad"; st.selected = c.id;
+      log("協助者", `退回 ${c.pid} ${c.label}，請農民補拍`); task(`請農民補拍：${c.pid} ${c.label}`); renderAll(); return;
+    }
+  });
+  document.addEventListener("input", (e) => {
+    const el = e.target; if (!st) return;
+    if (el.dataset.edit) { const c = st.claims.find((x) => x.id === el.dataset.edit); c.value = el.value.trim(); if (c.status === "ok") c.status = "pending"; }
+    if (el.dataset.ha) st.manual.ha[el.dataset.ha] = el.value.trim();
+    if (el.dataset.right) st.manual.right[el.dataset.right] = el.value.trim();
+    if (el.dataset.m) st.manual[el.dataset.m] = el.value.trim();
+  });
+  document.addEventListener("change", (e) => { if (st?.tab === "helper" && (e.target.dataset.edit || e.target.dataset.ha || e.target.dataset.right || e.target.dataset.m)) renderHelper(); });
+  $("#camera").addEventListener("change", (e) => {
+    const f = e.target.files?.[0]; if (!f) return;
+    takePhoto(URL.createObjectURL(f), "自己選的照片"); e.target.value = "";
+  });
+  function simulateHeard(text) {
+    if (st.step !== "question" || !isListening()) {
+      if (st.step === "question" && (st.qMode === "wait" || st.qMode === "readback")) { st.qMode = st.qMode === "readback" ? "readback-listen" : "listen"; }
+      else { log("測試", "請先到農民的問題畫面，再模擬語音"); return; }
+    }
+    try { recog?.abort(); } catch (x) {}
+    heard([text]);
+  }
+  $("#simVoice").addEventListener("submit", (e) => { e.preventDefault(); const v = $("#simText").value.trim(); if (v) simulateHeard(v); $("#simText").value = ""; });
+  $("#case").addEventListener("change", () => start($("#case").value));
+  $("#reset").addEventListener("click", () => start($("#case").value));
+  $("#aiError").addEventListener("change", () => { if (st.claims.length) { st.claims = buildClaims(); checkRules(st.claims); log("② 擷取", $("#aiError").checked ? "測試：重新擷取，故意讀錯一個面積" : "重新擷取（正常）"); renderAll(); } });
+
+  $("#voiceSupport").textContent = SR ? "這個瀏覽器支援語音辨識。手機需用 HTTPS 才能收音。" : "這個瀏覽器不支援語音辨識，請用上面的模擬輸入。";
+
+  // ───────── boot
+  function renderVoiceStatus() {
+    const el = $("#ttsStatus"); if (!el) return;
+    el.textContent = `音檔：${audioCount ? `已產生 ${audioCount} 個` : "尚未產生（執行 python tools/gen_tts.py）"}${lastSource ? `｜剛才播放：${lastSource}` : ""}`;
+  }
+  document.querySelectorAll('input[name="vlang"]').forEach((r) => r.addEventListener("change", () => {
+    voiceLang = r.value; if (st?.step === "question") speak(QUESTIONS[st.qIdx].speak);
+  }));
+  loadAudio();
+
+  async function start(caseId) {
+    stopSpeech();
+    try {
+      const r = await fetch(dataUrl(caseId, "answer.json"));
+      if (!r.ok) throw new Error(r.status);
+      const data = await r.json();
+      st = fresh(caseId, data);
+      $("#loadErr").hidden = true;
+      log("系統", `載入案例 ${caseId}：${data.description || ""}`);
+      renderAll();
+    } catch (e) {
+      $("#loadErr").hidden = false;
+      $("#loadErr").innerHTML = `讀不到測試資料（${esc(e.message)}）。請在專案資料夾執行 <code>python -m http.server 8000</code>，再打開 <code>http://localhost:8000/web/prototype.html</code>。直接雙擊檔案開啟時，瀏覽器不允許讀取資料。`;
+    }
+  }
+  start("C01");
+})();
+</script>
