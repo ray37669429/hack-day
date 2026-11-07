@@ -2,6 +2,16 @@
 
 設計（風格、畫面、動畫）見 `docs/frontend-design.md`。
 
+## Agent 工作台 `dev.html`（開發與展示用）
+
+```text
+http://localhost:8001/web/dev.html
+```
+
+按上方「＋ C01／C02／C03」建立測試案例。左邊是真的農民手機頁（可以直接操作，拍照畫面有本機測試按鈕），
+中間是流程圖（每個 agent 的狀態：等待／進行中／完成／有警示）、KPI 和物件表（土地、地主、每個欄位主張的狀態與來源頁），
+右邊是 agent 事件串流（農民做了什麼、每個 agent 回應了什麼）。資料每 1.5 秒更新，來自 `/api/cases/{id}`，只能在本機用。
+
 ## 農民手機頁 `farmer.html`
 
 接後端的正式頁面。先啟動後端（`.venv\Scripts\python -m uvicorn app.main:app --port 8001`），

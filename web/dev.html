@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 工作台</title>
+<!-- 開發用工作台（深色、資訊密集的分析軟體風格）：
+     左＝真的農民手機頁；中＝流程圖（每個 agent 的狀態）＋物件表（土地、地主、欄位主張）；右＝agent 事件串流。
+     資料來自 /api/cases/{id}（只開在本機）與 /api/f/{token}，每 1.5 秒更新。這一頁不給農民用。 -->
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #111418; --panel: #1C2127; --panel2: #252A31; --line: #383E47; --line2: #2F343C;
+  --fg: #F6F7F9; --fg2: #ABB3BF; --fg3: #738091;
+  --blue: #4C90F0; --blue-d: #2D72D2; --green: #32A467; --orange: #EC9A3C; --red: #E76A6E; --violet: #9881F3;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+  font: 13px/1.5 "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", system-ui, sans-serif; }
+button { font: inherit; }
+header { height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 14px; background: var(--panel); border-bottom: 1px solid var(--line); }
+header .logo { width: 22px; height: 22px; border: 2px solid var(--blue); border-radius: 4px; transform: rotate(45deg); margin-right: 4px; }
+header h1 { font-size: 14px; font-weight: 600; margin: 0; letter-spacing: .02em; }
+header .sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
+.tbtn { border: 1px solid var(--line); background: var(--panel2); color: var(--fg); border-radius: 3px; padding: 3px 10px; cursor: pointer; text-decoration: none; font-size: 12px; }
+.tbtn:hover { border-color: var(--blue); }
+.tbtn.pri { background: var(--blue-d); border-color: var(--blue-d); }
+.crumb { font-family: var(--mono); color: var(--fg2); font-size: 12px; }
+.live { display: inline-flex; align-items: center; gap: 6px; color: var(--fg2); font-size: 12px; margin-left: auto; }
+.live i { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 0 rgba(50,164,103,.6); animation: ping 1.6s infinite; }
+@keyframes ping { 70% { box-shadow: 0 0 0 7px rgba(50,164,103,0); } 100% { box-shadow: 0 0 0 0 rgba(50,164,103,0); } }
+
+main { display: grid; grid-template-columns: 392px minmax(0, 1fr) 360px; gap: 10px; padding: 10px; height: calc(100% - 44px); }
+.pane { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.pane > h2 { margin: 0; padding: 7px 12px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--fg2);
+  border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; }
+.pane > h2 .cnt { margin-left: auto; font-family: var(--mono); color: var(--fg3); letter-spacing: 0; }
+.phone-wrap { flex: 1; display: flex; justify-content: center; align-items: flex-start; padding: 10px; min-height: 0; }
+.phone { width: 372px; height: 100%; max-height: 812px; border: 8px solid #000; border-radius: 30px; overflow: hidden; background: #fff; }
+.phone iframe { width: 100%; height: 100%; border: 0; display: block; }
+.mid { display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 10px; min-height: 0; min-width: 0; }
+
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 8px 12px; min-width: 0; }
+.kpi small { display: block; font-size: 11px; color: var(--fg3); letter-spacing: .06em; }
+.kpi b { font-size: 20px; font-weight: 600; font-family: var(--mono); }
+.kpi span { font-size: 12px; color: var(--fg2); margin-left: 4px; }
+.kpi b.txt { font-size: 15px; font-family: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; line-height: 30px; }
+
+.graph svg { display: block; width: 100%; height: auto; }
+.node rect { fill: var(--panel2); stroke: var(--line); stroke-width: 1.5; rx: 4; transition: stroke .3s, fill .3s; }
+.node .t { fill: var(--fg); font-size: 13px; font-weight: 600; }
+.node .m { fill: var(--fg2); font-size: 11.5px; font-family: var(--mono); }
+.node .dot { fill: var(--fg3); }
+.node.run rect { stroke: var(--blue); fill: #1B2A3F; }
+.node.run .dot { fill: var(--blue); }
+.node.done rect { stroke: var(--green); }
+.node.done .dot { fill: var(--green); }
+.node.warn rect { stroke: var(--orange); }
+.node.warn .dot { fill: var(--orange); }
+.node.human rect { stroke-dasharray: 5 3; }
+.node.flash rect { filter: drop-shadow(0 0 8px var(--blue)); stroke: var(--blue); }
+.edge { fill: none; stroke: var(--line); stroke-width: 1.5; }
+.edge.on { stroke: var(--blue); stroke-dasharray: 6 5; animation: flow .8s linear infinite; }
+.edge.done { stroke: #2B6E4B; }
+@keyframes flow { to { stroke-dashoffset: -11; } }
+.legend { display: flex; gap: 14px; padding: 0 12px 8px; color: var(--fg3); font-size: 11px; }
+.legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+
+.objs { overflow: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { position: sticky; top: 0; background: var(--panel2); color: var(--fg3); font-weight: 600; text-align: left; padding: 5px 10px; font-size: 11px; letter-spacing: .05em; border-bottom: 1px solid var(--line); }
+td { padding: 5px 10px; border-bottom: 1px solid var(--line2); vertical-align: top; }
+tr.grp td { background: #20252C; color: var(--fg2); font-weight: 600; }
+td.id { font-family: var(--mono); color: var(--fg3); white-space: nowrap; }
+td.v { font-family: var(--mono); color: var(--fg); overflow-wrap: anywhere; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 3px; font-size: 11px; line-height: 18px; white-space: nowrap; }
+.chip.pending { background: #3A3F47; color: var(--fg2); }
+.chip.confirmed { background: rgba(50,164,103,.2); color: #72CA9B; }
+.chip.rejected { background: rgba(231,106,110,.2); color: #FA999C; }
+.flag { color: var(--orange); font-size: 11px; display: block; }
+
+.stream { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.ev { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; }
+.ev.me { grid-template-columns: minmax(0, 1fr) 26px; }
+.ev.me .av { order: 2; }
+.av { width: 26px; height: 26px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #fff; font-weight: 600; }
+.bub { background: var(--panel2); border: 1px solid var(--line); border-left: 3px solid var(--c, var(--line)); border-radius: 3px; padding: 5px 9px; min-width: 0; }
+.ev.me .bub { border-left: 1px solid var(--line); border-right: 3px solid var(--green); background: #1E2B24; }
+.bub.warn { border-left-color: var(--orange); background: #2E261B; }
+.bub .h { display: flex; gap: 8px; font-size: 11px; color: var(--fg3); }
+.bub .h b { color: var(--fg2); font-weight: 600; }
+.bub .h time { margin-left: auto; font-family: var(--mono); }
+.bub .a { font-weight: 600; }
+.bub .d { color: var(--fg2); overflow-wrap: anywhere; font-size: 12px; }
+.stage { align-self: center; font-size: 11px; color: var(--blue); border: 1px solid #2D4A73; background: #18263A; border-radius: 3px; padding: 1px 10px; font-family: var(--mono); }
+.new { animation: in .25s ease-out; }
+@keyframes in { from { opacity: 0; transform: translateX(6px); } }
+.empty { color: var(--fg3); text-align: center; margin: auto; padding: 20px; line-height: 1.8; }
+@media (prefers-reduced-motion: reduce) { .new, .edge.on, .live i { animation: none; } }
+@media (max-width: 1250px) { main { grid-template-columns: 392px minmax(0, 1fr); height: auto; } .stream-pane { grid-column: 1 / -1; height: 60vh; } .phone { height: 780px; } }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo" aria-hidden="true"></span><h1>Agent 工作台</h1>
+  <span class="sep"></span>
+  <button class="tbtn" data-new="C01">＋ C01 一般</button><button class="tbtn" data-new="C02">＋ C02 共有</button><button class="tbtn" data-new="C03">＋ C03 易錯</button>
+  <span class="sep"></span>
+  <span class="crumb" id="crumb">尚未選擇案例</span>
+  <a class="tbtn" id="openFarmer" href="#" target="_blank" hidden>另開農民頁</a>
+  <a class="tbtn" id="openReport" href="#" target="_blank" hidden>分析報告</a>
+  <span class="live" id="live" hidden><i></i>即時</span>
+</header>
+<main>
+  <section class="pane"><h2>農民手機</h2><div class="phone-wrap"><div class="phone"><iframe id="phone" title="農民手機頁" allow="microphone; autoplay"></iframe></div></div></section>
+  <div class="mid">
+    <div class="kpis" id="kpis"></div>
+    <section class="pane graph"><h2>流程<span class="cnt" id="stageTxt"></span></h2><svg id="graph" viewBox="0 0 860 330" role="img" aria-label="agent 流程圖"></svg>
+      <div class="legend"><span><i style="background:var(--fg3)"></i>等待</span><span><i style="background:var(--blue)"></i>進行中</span><span><i style="background:var(--green)"></i>完成</span><span><i style="background:var(--orange)"></i>有警示／待處理</span><span>虛線框＝農民本人</span></div></section>
+    <section class="pane objs-pane" style="min-height:0"><h2>物件：土地・地主・欄位主張<span class="cnt" id="objCnt"></span></h2><div class="objs" id="objs"><p class="empty">建立案例後，擷取出來的物件會列在這裡。</p></div></section>
+  </div>
+  <section class="pane stream-pane"><h2>Agent 事件串流<span class="cnt" id="evCnt"></span></h2><div class="stream" id="stream" aria-live="polite">
+    <p class="empty">按上面的「＋ C01／C02／C03」建立測試案例。<br>左邊是農民手機，中間是流程與物件，<br>這裡即時顯示每個 agent 做了什麼。</p></div></section>
+</main>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// 角色：名稱、縮寫、顏色、對應的流程節點
+const WHO = {
+  farmer: ["農民", "農", "#32A467", "farmer"],
+  system: ["系統", "系", "#738091", null],
+  "agent:intake": ["① 收件", "收", "#4C90F0", "intake"],
+  "agent:extract": ["② 擷取", "擷", "#9881F3", "extract"],
+  "agent:check": ["③ 核對", "核", "#EC9A3C", "check"],
+  "agent:triage": ["④ 分派", "分", "#2EB5AD", "triage"],
+  "agent:document": ["⑤ 文件", "文", "#D46BA3", "document"],
+  "agent:report": ["⑥ 報告", "報", "#8EB125", "report"],
+  "agent:faq": ["⑦ 服務台", "服", "#F0B726", "faq"],
+};
+const STAGE = { collecting: "收照片中", extracting: "擷取中", reviewing: "核對與回答中", documented: "已產生同意書", needs_human: "需要處理" };
+const FIELD = { location: "坐落", lot_no: "地號", area_m2: "面積 m²", owner: "地主", id_no: "身分證", share: "持分" };
+const ST = { pending: "待確認", confirmed: "已確認", rejected: "退回" };
+
+// 流程圖節點位置（蛇形：上排往右、下排往左）
+const NODES = [
+  { id: "photo", x: 20, y: 30, name: "農民拍照", human: true },
+  { id: "intake", x: 190, y: 30, name: "① 收件 agent" },
+  { id: "extract", x: 360, y: 30, name: "② 擷取 agent" },
+  { id: "check", x: 530, y: 30, name: "③ 核對 agent" },
+  { id: "triage", x: 700, y: 30, name: "④ 分派 agent" },
+  { id: "farmer", x: 700, y: 160, name: "農民核對・回答", human: true },
+  { id: "legal", x: 530, y: 160, name: "法律注意事項" },
+  { id: "document", x: 360, y: 160, name: "⑤ 文件 agent" },
+  { id: "report", x: 190, y: 160, name: "⑥ 報告 agent" },
+  { id: "faq", x: 700, y: 262, name: "⑦ 服務台 agent" },
+];
+const EDGES = [["photo", "intake"], ["intake", "extract"], ["extract", "check"], ["check", "triage"], ["triage", "farmer"],
+  ["farmer", "legal"], ["legal", "document"], ["document", "report"], ["farmer", "faq"]];
+const W = 140, H = 64;
+
+let caseId = new URLSearchParams(location.hash.slice(1)).get("case") || "";
+let shown = 0, timer = null, token = "", flashNode = null, flashUntil = 0;
+
+async function newCase(sample) {
+  const r = await fetch("../api/cases", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sample_id: sample }) });
+  if (r.ok) location.hash = `case=${(await r.json()).id}`;
+}
+
+// ───── 每個節點的狀態與數字
+function nodeState(c, fv) {
+  const ok = c.photos.filter((p) => p.ok && !p.retired).length, bad = c.photos.filter((p) => !p.ok).length;
+  const claims = c.claims, flags = claims.reduce((n, x) => n + x.flags.length, 0);
+  const qs = fv?.questions || [], answered = qs.filter((q) => q.id in (fv?.answers || {})).length;
+  const legal = c.legal || [], asked = legal.filter((l) => l.asked).length;
+  const asks = c.events.filter((e) => e.actor === "agent:faq").length;
+  const reported = c.events.some((e) => e.actor === "agent:report");
+  const draft = (c.documents || []).some((d) => d.includes("草稿"));
+  const s = c.stage, after = s !== "collecting";
+  return {
+    photo: [ok >= c.pages_expected || after ? "done" : s === "collecting" ? "run" : "", `${ok}/${c.pages_expected} 張`],
+    intake: [bad && s === "collecting" ? "warn" : after ? "done" : ok || bad ? "run" : "", `通過 ${ok}・退回 ${bad}`],
+    extract: [s === "extracting" ? "run" : claims.length ? "done" : "", claims.length ? `${claims.length} 個欄位` : "—"],
+    check: [claims.length ? (flags ? "warn" : "done") : "", claims.length ? `警示 ${flags}` : "—"],
+    triage: [claims.length ? "done" : "", qs.length && claims.length ? `${qs.length} 題` : "—"],
+    farmer: [!claims.length ? "" : answered < qs.length ? "run" : "done", claims.length ? `已答 ${answered}/${qs.length}` : "—"],
+    legal: [legal.length ? (asked ? "warn" : "done") : claims.length ? "done" : "", legal.length ? `${legal.length} 項・問 ${asked}` : claims.length ? "無" : "—"],
+    document: [(c.documents || []).length ? (draft ? "warn" : "done") : "", (c.documents || []).length ? `${c.documents.length} 份・${draft ? "草稿" : "正式"}` : "—"],
+    report: [reported ? "done" : "", reported ? "已產生" : "—"],
+    faq: [asks ? "done" : "", `問答 ${asks}`],
+  };
+}
+
+function graphSvg(state) {
+  const pos = Object.fromEntries(NODES.map((n) => [n.id, n]));
+  const edge = ([a, b]) => {
+    const A = pos[a], B = pos[b];
+    let d;
+    if (A.y === B.y) { const dir = B.x > A.x ? 1 : -1; d = `M${A.x + (dir > 0 ? W : 0)},${A.y + H / 2} L${B.x + (dir > 0 ? 0 : W)},${B.y + H / 2}`; }
+    else d = `M${A.x + W / 2},${A.y + H} L${B.x + W / 2},${B.y}`;
+    const sa = state[a]?.[0], sb = state[b]?.[0];
+    const cls = sb === "run" || (sa === "run" && b !== "faq") ? "on" : sa === "done" && (sb === "done" || sb === "warn") ? "done" : "";
+    return `<path class="edge ${cls}" d="${d}" marker-end="url(#arr)"/>`;
+  };
+  const node = (n) => {
+    const [st, m] = state[n.id] || ["", "—"];
+    const cls = `node ${st} ${n.human ? "human" : ""} ${flashNode === n.id && Date.now() < flashUntil ? "flash" : ""}`;
+    return `<g class="${cls}" transform="translate(${n.x},${n.y})"><rect width="${W}" height="${H}"/>
+      <circle class="dot" cx="14" cy="18" r="4"/><text class="t" x="26" y="23">${esc(n.name)}</text>
+      <text class="m" x="14" y="47">${esc(m)}</text></g>`;
+  };
+  return `<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#5F6B7C"/></marker></defs>${EDGES.map(edge).join("")}${NODES.map(node).join("")}`;
+}
+
+// ───── 物件表：土地 → 欄位主張；地主 → 欄位主張
+function objsHtml(c) {
+  if (!c.claims.length) return `<p class="empty">${c.stage === "extracting" ? "擷取中…" : "還沒有擷取結果（農民拍完照片後會出現）。"}</p>`;
+  const rows = [];
+  const claimRows = (target) => c.claims.filter((x) => x.target === target).map((x) => `<tr><td class="id">${esc(x.id)}</td><td>${esc(FIELD[x.field] || x.field)}</td>
+    <td class="v">${x.ai_value ? esc(x.value) : '<span style="color:var(--orange)">（看不清）</span>'}${x.flags.map((f) => `<span class="flag">⚠ ${esc(f)}</span>`).join("")}</td>
+    <td><span class="chip ${x.status}">${ST[x.status] || x.status}</span></td><td class="id">頁 ${x.source.page}</td></tr>`).join("");
+  c.parcels.forEach((p, i) => {
+    rows.push(`<tr class="grp"><td colspan="5">土地 ${i + 1}・${esc(p.pid)}</td></tr>${claimRows(p.pid)}`);
+    c.ownerships.filter((o) => o.pid === p.pid).forEach((o) => rows.push(`<tr class="grp"><td colspan="5">　地主・${esc(o.oid)}</td></tr>${claimRows(o.oid)}`));
+  });
+  return `<table><thead><tr><th>主張 ID</th><th>欄位</th><th>值</th><th>狀態</th><th>來源</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
+}
+
+function kpisHtml(c, fv) {
+  const conf = c.claims.filter((x) => x.status === "confirmed").length;
+  const qs = fv?.questions || [];
+  const k = (label, v, sub = "") => `<div class="kpi"><small>${label}</small><b>${v}</b><span>${sub}</span></div>`;
+  return `<div class="kpi"><small>階段</small><b class="txt">${esc(STAGE[c.stage] || c.stage)}</b></div>` + k("欄位已確認", `${conf}/${c.claims.length}`)
+    + k("題目已答", `${qs.filter((q) => q.id in (fv?.answers || {})).length}/${qs.length}`)
+    + k("不能出正式版", (c.missing || []).length, "項") + k("事件", c.events.length, "筆");
+}
+
+// ───── 事件串流
+function toMsgs(e) {
+  if (e.action === "上傳照片") {
+    const m = e.detail.match(/^第 (\d+) 頁：(.*)$/), pass = m && m[2].startsWith("通過");
+    return [{ actor: "farmer", act: "拍了一張照片", det: m ? `第 ${m[1]} 頁` : "" },
+      { actor: "agent:intake", act: pass ? "照片可以用" : "照片退回", det: m ? m[2] : e.detail, warn: !pass }];
+  }
+  if (e.action === "改變階段") return [{ stage: STAGE[e.detail.split(" ")[0]] || e.detail }];
+  if (e.action === "回答農民的問題") {
+    const m = e.detail.match(/^(語音|按鈕)：「(.*)」→ (.+)$/);
+    if (m) return [{ actor: "farmer", act: `問問題（${m[1]}）`, det: m[2] },
+      { actor: "agent:faq", act: "回答", det: m[3] === "fallback" ? "答案庫沒有 → 老實說不會" : m[3] === "legal" ? "法律問題 → 不判斷，請他問地政事務所或農會" : `答案庫：${m[3]}` }];
+  }
+  return [{ actor: e.actor, act: e.action, det: e.detail, warn: ["加註警示", "退回欄位"].includes(e.action) }];
+}
+function evHtml(m, t) {
+  if (m.stage) return `<div class="stage new">▸ 階段：${esc(m.stage)}</div>`;
+  const [name, short, color] = WHO[m.actor] || [m.actor, "?", "#738091"];
+  return `<div class="ev ${m.actor === "farmer" ? "me" : ""} new"><span class="av" style="background:${color}">${esc(short)}</span>
+    <div class="bub${m.warn ? " warn" : ""}" style="--c:${color}"><div class="h"><b>${esc(name)}</b><time>${esc(t)}</time></div>
+    <div class="a">${esc(m.act)}</div>${m.det ? `<div class="d">${esc(m.det)}</div>` : ""}</div></div>`;
+}
+
+// ───── 更新
+function start() {
+  clearInterval(timer);
+  shown = 0; token = "";
+  $("#phone").removeAttribute("src");
+  if (!caseId) return;
+  $("#crumb").textContent = `案例 / ${caseId}`;
+  $("#live").hidden = false;
+  $("#stream").innerHTML = `<p class="empty">讀取中…</p>`;
+  poll();
+  timer = setInterval(poll, 1500);
+}
+
+async function poll() {
+  let c, fv = null;
+  try {
+    const r = await fetch(`../api/cases/${encodeURIComponent(caseId)}`, { cache: "no-store" });
+    if (!r.ok) { $("#stream").innerHTML = `<p class="empty">找不到案例 ${esc(caseId)}</p>`; clearInterval(timer); return; }
+    c = await r.json();
+    const f = await fetch(`../api/f/${c.farmer_token}`, { cache: "no-store" });
+    if (f.ok) fv = await f.json();
+  } catch { return; }
+  if (!token) {
+    token = c.farmer_token;
+    $("#phone").src = `farmer.html#t=${token}`;
+    $("#openFarmer").href = `farmer.html#t=${token}`; $("#openFarmer").hidden = false;
+    $("#openReport").href = `../api/f/${token}/report`;
+  }
+  $("#openReport").hidden = !fv?.report;
+  // 新事件：串流加訊息，流程圖對應節點亮一下
+  const ev = c.events;
+  if (ev.length < shown) shown = 0;
+  if (ev.length > shown) {
+    const s = $("#stream");
+    if (shown === 0) s.innerHTML = "";
+    const near = s.scrollHeight - s.scrollTop - s.clientHeight < 80;
+    const fresh = ev.slice(shown);
+    s.insertAdjacentHTML("beforeend", fresh.map((e) => {
+      const t = new Date(e.at).toLocaleTimeString("zh-TW", { hour12: false });
+      return toMsgs(e).map((m) => evHtml(m, t)).join("");
+    }).join(""));
+    if (near || shown === 0) s.scrollTop = s.scrollHeight;
+    const last = toMsgs(fresh[fresh.length - 1]).filter((m) => m.actor).pop();
+    const node = last && (last.actor === "farmer" ? (c.claims.length ? "farmer" : "photo") : WHO[last.actor]?.[3]);
+    if (node) { flashNode = node; flashUntil = Date.now() + 2500; }
+    shown = ev.length;
+  }
+  $("#evCnt").textContent = `${ev.length} 筆`;
+  $("#stageTxt").textContent = STAGE[c.stage] || c.stage;
+  $("#kpis").innerHTML = kpisHtml(c, fv);
+  $("#graph").innerHTML = graphSvg(nodeState(c, fv));
+  $("#objs").innerHTML = objsHtml(c);
+  $("#objCnt").textContent = `${c.parcels.length} 筆土地・${c.ownerships.length} 位地主・${c.claims.length} 個主張`;
+}
+
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-new]"); if (b) newCase(b.dataset.new); });
+window.addEventListener("hashchange", () => { caseId = new URLSearchParams(location.hash.slice(1)).get("case") || ""; start(); });
+start();
+</script>
+</body>
+</html>
