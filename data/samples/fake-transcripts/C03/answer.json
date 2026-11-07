@@ -1,0 +1,98 @@
+{
+  "case_id": "C03",
+  "fictional": true,
+  "notice": "本文件為黑客松測試用虛構資料，不具任何效力",
+  "description": "易錯：前導零地號、相同地號但段名相似（示範段/示範一段）、面積接近進位邊界、權利範圍污損",
+  "parcels": [
+    {
+      "parcel_id": "P1",
+      "county": "範例縣",
+      "township": "試驗鄉",
+      "section": "示範段",
+      "subsection": "",
+      "lot_no": "0005-0001",
+      "area_raw": "1,000.05",
+      "area_unit": "平方公尺",
+      "area_m2": "1000.05",
+      "zoning": "特定農業區",
+      "land_use": "農牧用地",
+      "source": {
+        "file": "page1.png",
+        "page": 1
+      }
+    },
+    {
+      "parcel_id": "P2",
+      "county": "範例縣",
+      "township": "試驗鄉",
+      "section": "示範一段",
+      "subsection": "",
+      "lot_no": "0005-0001",
+      "area_raw": "2,499.95",
+      "area_unit": "平方公尺",
+      "area_m2": "2499.95",
+      "zoning": "特定農業區",
+      "land_use": "農牧用地",
+      "source": {
+        "file": "page2.png",
+        "page": 2
+      }
+    }
+  ],
+  "ownerships": [
+    {
+      "parcel_id": "P1",
+      "section": "示範段",
+      "lot_no": "0005-0001",
+      "reg_order": "0001",
+      "owner": "農民C",
+      "id_masked": "C34567****",
+      "address_masked": "範例縣試驗鄉□□村□□巷**號",
+      "share_raw": "全部 1分之1",
+      "share_num": 1,
+      "share_den": 1,
+      "source": {
+        "file": "page1.png",
+        "page": 1
+      }
+    },
+    {
+      "parcel_id": "P2",
+      "section": "示範一段",
+      "lot_no": "0005-0001",
+      "reg_order": "0001",
+      "owner": "農民C",
+      "id_masked": "C34567****",
+      "address_masked": "範例縣試驗鄉□□村□□巷**號",
+      "share_raw": "待確認",
+      "share_num": "待確認",
+      "share_den": "待確認",
+      "source": {
+        "file": "page2.png",
+        "page": 2
+      }
+    }
+  ],
+  "pending": [
+    {
+      "field": "權利範圍",
+      "parcel_id": "P2",
+      "section": "示範一段",
+      "lot_no": "0005-0001",
+      "source": {
+        "file": "page2.png",
+        "page": 2
+      },
+      "note": "污損無法辨識：權利範圍的分子與分母被污漬蓋住，不得猜值，需協助者對照原件或重新申請謄本"
+    }
+  ],
+  "expected_quality": {
+    "page1.png": "pass",
+    "page2.png": "pass",
+    "photo_page1.jpg": "pass",
+    "photo_page1_bad.jpg": "fail"
+  },
+  "expected_quality_notes": {
+    "photo_page1_bad.jpg": "太暗、嚴重模糊、右側約 1/6 頁面超出畫面；應請農民重拍"
+  }
+}

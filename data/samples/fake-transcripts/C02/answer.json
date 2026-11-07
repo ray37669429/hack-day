@@ -1,0 +1,65 @@
+{
+  "case_id": "C02",
+  "fictional": true,
+  "notice": "本文件為黑客松測試用虛構資料，不具任何效力",
+  "description": "共有：1 筆土地由農民A、農民B 各持分 2分之1",
+  "parcels": [
+    {
+      "parcel_id": "P1",
+      "county": "範例縣",
+      "township": "試驗鄉",
+      "section": "測試段",
+      "subsection": "北小段",
+      "lot_no": "0456-0000",
+      "area_raw": "3,210.00",
+      "area_unit": "平方公尺",
+      "area_m2": "3210.00",
+      "zoning": "一般農業區",
+      "land_use": "農牧用地",
+      "source": {
+        "file": "page1.png",
+        "page": 1
+      }
+    }
+  ],
+  "ownerships": [
+    {
+      "parcel_id": "P1",
+      "section": "測試段",
+      "lot_no": "0456-0000",
+      "reg_order": "0001",
+      "owner": "農民A",
+      "id_masked": "A12345****",
+      "address_masked": "範例縣試驗鄉○○村○○路**號",
+      "share_raw": "2分之1",
+      "share_num": 1,
+      "share_den": 2,
+      "source": {
+        "file": "page1.png",
+        "page": 1
+      }
+    },
+    {
+      "parcel_id": "P1",
+      "section": "測試段",
+      "lot_no": "0456-0000",
+      "reg_order": "0002",
+      "owner": "農民B",
+      "id_masked": "B23456****",
+      "address_masked": "範例縣試驗鄉△△村△△街**號",
+      "share_raw": "2分之1",
+      "share_num": 1,
+      "share_den": 2,
+      "source": {
+        "file": "page2.png",
+        "page": 2
+      }
+    }
+  ],
+  "pending": [],
+  "expected_quality": {
+    "page1.png": "pass",
+    "page2.png": "pass",
+    "photo_page1.jpg": "pass"
+  }
+}
