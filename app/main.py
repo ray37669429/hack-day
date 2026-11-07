@@ -12,7 +12,11 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import actions, pipeline, store
+from .config import load_env
+
+load_env()
+
+from . import actions, pipeline, store  # noqa: E402
 from .agents import document, intake, triage
 from .models import ANSWER_LABEL, QUESTIONS, Case, Channel, Manual, Stage
 

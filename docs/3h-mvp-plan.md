@@ -47,7 +47,7 @@
 
 - [x] `.venv` 建好，`pip install -r requirements.txt` 成功，測試通過
 - [x] 本機 Qwen3-TTS 可用（`C:\Users\Ray\qwen3-tts\venv`），國語音檔已產生
-- [ ] `OPENAI_API_KEY` 放進 `.env`，先跑一次 `tools/eval_extract.py`
+- [x] `OPENAI_API_KEY` 放進 `.env`，評分 C01–C03 全數通過（猜測 0）
 - [ ] 準備 HTTPS 通道（cloudflared 或 ngrok），手機才能用麥克風
 - [ ] 台語：Fun-CosyVoice3 試跑結果確認（見 [voice-design.md](voice-design.md)）；台語句子請母語者校對
 - [ ] 手機和筆電在同一個網路

@@ -1,0 +1,5 @@
+{
+  "text": "{\n  \"parcels\": [\n    {\n      \"parcel_id\": \"P1\",\n      \"county\": \"範例縣\",\n      \"township\": \"試驗鄉\",\n      \"section\": \"測試段\",\n      \"subsection\": \"北小段\",\n      \"lot_no\": \"0456-0000\",\n      \"area_raw\": \"3,210.00\",\n      \"source\": {\n        \"file\": \"photo_page1.jpg\",\n        \"page\": 1\n      }\n    }\n  ],\n  \"ownerships\": [\n    {\n      \"parcel_id\": \"P1\",\n      \"owner\": \"農民A\",\n      \"id_masked\": \"A12345****\",\n      \"share_raw\": \"2分之1\",\n      \"source\": {\n        \"file\": \"photo_page1.jpg\",\n        \"page\": 1\n      }\n    },\n    {\n      \"parcel_id\": \"P1\",\n      \"owner\": \"農民B\",\n      \"id_masked\": \"B23456****\",\n      \"share_raw\": \"2分之1\",\n      \"source\": {\n        \"file\": \"page2.png\",\n        \"page\": 2\n      }\n    }\n  ],\n  \"pending\": []\n}",
+  "model": "gpt-6-astra",
+  "prompt_version": "extract-v1"
+}

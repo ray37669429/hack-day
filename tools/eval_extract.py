@@ -18,6 +18,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from app.config import load_env  # noqa: E402
+
+load_env()
+
 from app.llm import harness, providers  # noqa: E402
 from app.llm.base import ImageInput, LLMError  # noqa: E402
 from app.llm.evaluate import score  # noqa: E402
