@@ -2,233 +2,699 @@
   "items": {
     "q1": {
       "files": {
-        "zh": "zh/q1.wav",
+        "zh": "zh/q1.mp3",
         "nan": "nan/q1.wav"
       },
       "zh_text": "這幾筆，是你的地嗎？請說，是，或是，不是。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "q2": {
       "files": {
-        "zh": "zh/q2.wav",
+        "zh": "zh/q2.mp3",
         "nan": "nan/q2.wav"
       },
       "zh_text": "這些地，是誰在種？是你自己，還是別人？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "q3": {
       "files": {
-        "zh": "zh/q3.wav",
+        "zh": "zh/q3.mp3",
         "nan": "nan/q3.wav"
       },
       "zh_text": "用什麼方式給人種？承租、託耕、輪耕，還是分耕？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "retry": {
       "files": {
-        "zh": "zh/retry.wav",
+        "zh": "zh/retry.mp3",
         "nan": "nan/retry.wav"
       },
       "zh_text": "我沒聽清楚，請再講一次。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "use_buttons": {
       "files": {
-        "zh": "zh/use_buttons.wav",
+        "zh": "zh/use_buttons.mp3",
         "nan": "nan/use_buttons.wav"
       },
       "zh_text": "我沒聽清楚，請按下面的按鈕。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_yes": {
       "files": {
-        "zh": "zh/rb_yes.wav",
+        "zh": "zh/rb_yes.mp3",
         "nan": "nan/rb_yes.wav"
       },
       "zh_text": "你講，是，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_no": {
       "files": {
-        "zh": "zh/rb_no.wav",
+        "zh": "zh/rb_no.mp3",
         "nan": "nan/rb_no.wav"
       },
       "zh_text": "你講，不是，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_unsure": {
       "files": {
-        "zh": "zh/rb_unsure.wav",
+        "zh": "zh/rb_unsure.mp3",
         "nan": "nan/rb_unsure.wav"
       },
       "zh_text": "你講，我不確定，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_self": {
       "files": {
-        "zh": "zh/rb_self.wav",
+        "zh": "zh/rb_self.mp3",
         "nan": "nan/rb_self.wav"
       },
       "zh_text": "你講，我自己，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_other": {
       "files": {
-        "zh": "zh/rb_other.wav",
+        "zh": "zh/rb_other.mp3",
         "nan": "nan/rb_other.wav"
       },
       "zh_text": "你講，別人，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_lease": {
       "files": {
-        "zh": "zh/rb_lease.wav",
+        "zh": "zh/rb_lease.mp3",
         "nan": "nan/rb_lease.wav"
       },
       "zh_text": "你講，承租，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_entrust": {
       "files": {
-        "zh": "zh/rb_entrust.wav",
+        "zh": "zh/rb_entrust.mp3",
         "nan": "nan/rb_entrust.wav"
       },
       "zh_text": "你講，託耕，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_rotate": {
       "files": {
-        "zh": "zh/rb_rotate.wav",
+        "zh": "zh/rb_rotate.mp3",
         "nan": "nan/rb_rotate.wav"
       },
       "zh_text": "你講，輪耕，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "rb_split": {
       "files": {
-        "zh": "zh/rb_split.wav",
+        "zh": "zh/rb_split.mp3",
         "nan": "nan/rb_split.wav"
       },
       "zh_text": "你講，分耕，對嗎？",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "again": {
       "files": {
-        "zh": "zh/again.wav",
+        "zh": "zh/again.mp3",
         "nan": "nan/again.wav"
       },
       "zh_text": "好，請再回答一次。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "photo_dark": {
       "files": {
-        "zh": "zh/photo_dark.wav",
+        "zh": "zh/photo_dark.mp3",
         "nan": "nan/photo_dark.wav"
       },
       "zh_text": "照片有點暗，請到亮一點的地方再拍一次。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "photo_blur": {
       "files": {
-        "zh": "zh/photo_blur.wav",
+        "zh": "zh/photo_blur.mp3",
         "nan": "nan/photo_blur.wav"
       },
       "zh_text": "照片有點糊，請拿穩手機，再拍一次。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "photo_next2": {
       "files": {
-        "zh": "zh/photo_next2.wav",
+        "zh": "zh/photo_next2.mp3",
         "nan": "nan/photo_next2.wav"
       },
       "zh_text": "很好。請拍第 2 張。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "photo_next3": {
       "files": {
-        "zh": "zh/photo_next3.wav",
+        "zh": "zh/photo_next3.mp3",
         "nan": "nan/photo_next3.wav"
       },
       "zh_text": "很好。請拍第 3 張。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
     "received": {
       "files": {
-        "zh": "zh/received.wav",
+        "zh": "zh/received.mp3",
         "nan": "nan/received.wav"
       },
       "zh_text": "收到了。接下來不用做事，好了會請你回答幾個問題。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
+        "zh": "openai:gpt-4o-mini-tts:coral",
         "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
       }
     },
-    "done": {
+    "done_ok": {
       "files": {
-        "zh": "zh/done.wav",
-        "nan": "nan/done.wav"
+        "zh": "zh/done_ok.mp3"
       },
-      "zh_text": "謝謝你，回答完了。同意書準備好以後，協助者會跟你約時間，帶印章來簽名。",
+      "zh_text": "謝謝你，回答完了。同意書做好了，請按下載。",
       "engine": {
-        "zh": "local:Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice:Serena",
-        "nan": "cosyvoice:Fun-CosyVoice3-0.5B:zero_shot_prompt+minnan-instruct"
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "done_draft": {
+      "files": {
+        "zh": "zh/done_draft.mp3"
+      },
+      "zh_text": "謝謝你，回答完了。同意書是草稿，還有幾件事要處理。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "desk_hello": {
+      "files": {
+        "zh": "zh/desk_hello.mp3"
+      },
+      "zh_text": "有什麼不懂的，都可以問我。按綠色的按鈕，用講的問。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "desk_again": {
+      "files": {
+        "zh": "zh/desk_again.mp3"
+      },
+      "zh_text": "請說你的問題。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "desk_not_heard": {
+      "files": {
+        "zh": "zh/desk_not_heard.mp3"
+      },
+      "zh_text": "我沒聽清楚，可以再說一次，或按下面的問題。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "desk_offline": {
+      "files": {
+        "zh": "zh/desk_offline.mp3"
+      },
+      "zh_text": "現在沒辦法回答，請等一下再問一次。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "photo_open": {
+      "files": {
+        "zh": "zh/photo_open.mp3"
+      },
+      "zh_text": "照片打不開，請再拍一次。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "intro1": {
+      "files": {
+        "zh": "zh/intro1.mp3"
+      },
+      "zh_text": "你好，我們要幫你準備土地使用同意書。要拍土地謄本 1 張，核對謄本上的資料，回答幾個問題，再選要簽幾年，大約 10 分鐘。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "shoot1": {
+      "files": {
+        "zh": "zh/shoot1.mp3"
+      },
+      "zh_text": "請拍第 1 張土地謄本。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "intro2": {
+      "files": {
+        "zh": "zh/intro2.mp3"
+      },
+      "zh_text": "你好，我們要幫你準備土地使用同意書。要拍土地謄本 2 張，核對謄本上的資料，回答幾個問題，再選要簽幾年，大約 10 分鐘。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "shoot2": {
+      "files": {
+        "zh": "zh/shoot2.mp3"
+      },
+      "zh_text": "請拍第 2 張土地謄本。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "intro3": {
+      "files": {
+        "zh": "zh/intro3.mp3"
+      },
+      "zh_text": "你好，我們要幫你準備土地使用同意書。要拍土地謄本 3 張，核對謄本上的資料，回答幾個問題，再選要簽幾年，大約 10 分鐘。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "shoot3": {
+      "files": {
+        "zh": "zh/shoot3.mp3"
+      },
+      "zh_text": "請拍第 3 張土地謄本。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "rb_09": {
+      "files": {
+        "zh": "zh/rb_09.mp3"
+      },
+      "zh_text": "你講，一樣，對嗎？",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "rb_10": {
+      "files": {
+        "zh": "zh/rb_10.mp3"
+      },
+      "zh_text": "你講，不一樣，對嗎？",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "rb_11": {
+      "files": {
+        "zh": "zh/rb_11.mp3"
+      },
+      "zh_text": "你講，知道，對嗎？",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "rb_12": {
+      "files": {
+        "zh": "zh/rb_12.mp3"
+      },
+      "zh_text": "你講，不知道，對嗎？",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "rb_13": {
+      "files": {
+        "zh": "zh/rb_13.mp3"
+      },
+      "zh_text": "你講，有，對嗎？",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "rb_14": {
+      "files": {
+        "zh": "zh/rb_14.mp3"
+      },
+      "zh_text": "你講，沒有，對嗎？",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "rb_15": {
+      "files": {
+        "zh": "zh/rb_15.mp3"
+      },
+      "zh_text": "你講，聯絡得到，對嗎？",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "rb_16": {
+      "files": {
+        "zh": "zh/rb_16.mp3"
+      },
+      "zh_text": "你講，聯絡不到，對嗎？",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "rb_17": {
+      "files": {
+        "zh": "zh/rb_17.mp3"
+      },
+      "zh_text": "你講，1 年，對嗎？",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "rb_18": {
+      "files": {
+        "zh": "zh/rb_18.mp3"
+      },
+      "zh_text": "你講，3 年，對嗎？",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "rb_19": {
+      "files": {
+        "zh": "zh/rb_19.mp3"
+      },
+      "zh_text": "你講，5 年，對嗎？",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "check_land": {
+      "files": {
+        "zh": "zh/check_land.mp3"
+      },
+      "zh_text": "請看一下，這筆地，跟你的謄本上寫的一樣嗎？",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "check_owner": {
+      "files": {
+        "zh": "zh/check_owner.mp3"
+      },
+      "zh_text": "請看一下，地主的名字和持分，跟謄本上一樣嗎？",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "period": {
+      "files": {
+        "zh": "zh/period.mp3"
+      },
+      "zh_text": "這份同意書要簽幾年？一年、三年，還是五年？",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "l_coowner": {
+      "files": {
+        "zh": "zh/l_coowner.mp3"
+      },
+      "zh_text": "這筆地，還有其他地主。他們知道你要簽同意書嗎？",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "l_coowner_reach": {
+      "files": {
+        "zh": "zh/l_coowner_reach.mp3"
+      },
+      "zh_text": "其他地主，你聯絡得到嗎？請說，聯絡得到，或是，聯絡不到。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "l_lease": {
+      "files": {
+        "zh": "zh/l_lease.mp3"
+      },
+      "zh_text": "你跟種田的人，有沒有簽租約？請說，有，或是，沒有。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "l_lease_375": {
+      "files": {
+        "zh": "zh/l_lease_375.mp3"
+      },
+      "zh_text": "這份租約，是三七五租約嗎？請說，是，或是，不是。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_00": {
+      "files": {
+        "zh": "zh/faq_00.mp3"
+      },
+      "zh_text": "這個牽涉到法律，我不能幫你判斷。請你問地政事務所或農會，比較準。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_01": {
+      "files": {
+        "zh": "zh/faq_01.mp3"
+      },
+      "zh_text": "我們在幫你準備土地使用同意書。你拍謄本、核對一下、回答幾個問題，最後印出來簽名就好。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_02": {
+      "files": {
+        "zh": "zh/faq_02.mp3"
+      },
+      "zh_text": "我是阿伯，幫你做同意書的小幫手。有不懂的，都可以按「問問題」問我。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_03": {
+      "files": {
+        "zh": "zh/faq_03.mp3"
+      },
+      "zh_text": "謄本上有你土地的資料。拍下來，系統會幫你把字抄到同意書上，你就不用自己寫。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_04": {
+      "files": {
+        "zh": "zh/faq_04.mp3"
+      },
+      "zh_text": "到亮一點的地方，把謄本放平，四個角都拍進來，手拿穩再按拍照。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_05": {
+      "files": {
+        "zh": "zh/faq_05.mp3"
+      },
+      "zh_text": "照片只用來讀謄本上的字、做你的同意書，不會拿去做別的事。這個系統也不會跟你要錢或密碼。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_06": {
+      "files": {
+        "zh": "zh/faq_06.mp3"
+      },
+      "zh_text": "全部大約十分鐘。讀謄本的時候要等一下，手機放著就好。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_07": {
+      "files": {
+        "zh": "zh/faq_07.mp3"
+      },
+      "zh_text": "請拿出你的謄本對對看。卡片上的字跟謄本上一樣，就按一樣；不一樣就按不一樣。看不清楚也沒關係，按我不確定。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_08": {
+      "files": {
+        "zh": "zh/faq_08.mp3"
+      },
+      "zh_text": "不知道沒關係，按「我不確定」就好。同意書會先當草稿，之後再補。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_09": {
+      "files": {
+        "zh": "zh/faq_09.mp3"
+      },
+      "zh_text": "這四種是寫在同意書上的耕作方式。不確定是哪一種，就按「我不確定」，簽的時候再寫上去。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_10": {
+      "files": {
+        "zh": "zh/faq_10.mp3"
+      },
+      "zh_text": "看你跟種田的人怎麼講好。可以選一年、三年或五年；還沒講好，就按「我不確定」。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_11": {
+      "files": {
+        "zh": "zh/faq_11.mp3"
+      },
+      "zh_text": "同意書下載以後印出來。你和種田的人都要簽名蓋章，再寫上日期。種田的人名字和身分證號，簽的時候自己寫。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_12": {
+      "files": {
+        "zh": "zh/faq_12.mp3"
+      },
+      "zh_text": "草稿的意思是還有地方沒確認好。照著「還要處理的事」做完，就會變成正式的。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_13": {
+      "files": {
+        "zh": "zh/faq_13.mp3"
+      },
+      "zh_text": "沒關係。按左上角的箭頭可以回上一步，重新選一次。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_14": {
+      "files": {
+        "zh": "zh/faq_14.mp3"
+      },
+      "zh_text": "這個我還不會回答。你可以問農會，或請家人幫你看看。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_15": {
+      "files": {
+        "zh": "zh/faq_15.mp3"
+      },
+      "zh_text": "我沒聽清楚，可以再說一次，或按下面的按鈕問我。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_16": {
+      "files": {
+        "zh": "zh/faq_16.mp3"
+      },
+      "zh_text": "現在請你拍土地謄本，照畫面上的說明拍。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_17": {
+      "files": {
+        "zh": "zh/faq_17.mp3"
+      },
+      "zh_text": "現在在讀你的謄本，你不用做事，等一下就好。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_18": {
+      "files": {
+        "zh": "zh/faq_18.mp3"
+      },
+      "zh_text": "系統讀不了這份謄本。請重新拍一次，或找家人幫忙。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_19": {
+      "files": {
+        "zh": "zh/faq_19.mp3"
+      },
+      "zh_text": "現在請你回答畫面上的問題。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "faq_20": {
+      "files": {
+        "zh": "zh/faq_20.mp3"
+      },
+      "zh_text": "都好了。請下載同意書，印出來簽名蓋章。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
+      }
+    },
+    "retake": {
+      "files": {
+        "zh": "zh/retake.mp3"
+      },
+      "zh_text": "要重拍哪一張？請按下面的按鈕。",
+      "engine": {
+        "zh": "openai:gpt-4o-mini-tts:coral"
       }
     }
   }

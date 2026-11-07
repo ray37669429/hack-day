@@ -44,7 +44,7 @@
 
 - 只有農民端：手機網頁，拍照、核對、答題（可聽可講）、選期間、下載同意書。沒有協助者端（Excel 核對表也不做）。
 - agent 只做收件、擷取、核對、分派、文件；不做提醒與通知。
-- 語音：朗讀用 **Qwen3 TTS** 事先產生的音檔（`tools/gen_tts.py`、`web/audio/`），找不到才用瀏覽器語音；國語語音回答。不做台語語音辨識。TTS 金鑰不能出現在前端。
+- 語音：國語朗讀用 **OpenAI TTS**（`gpt-4o-mini-tts`）事先產生的 mp3（`tools/gen_tts.py --engine openai`、`web/audio/`），找不到才用瀏覽器語音；全部句子用同一個聲音。農民頁會唸的固定句子都要列在 `web/audio/prompts.json`（`tools/collect_prompts.py`，有測試檢查）。國語語音回答。不做台語語音辨識。TTS 金鑰不能出現在前端；只送固定句子，不送姓名、身分證號。
 - 只用遮蔽樣本或虛構資料（假謄本在 `data/samples/fake-transcripts/`）。不做 LINE、登入、線上簽名。
 - 不在 MVP 範圍的功能，不要主動加進來。
 
@@ -71,4 +71,4 @@
 - Windows 請設 `PYTHONIOENCODING=utf-8`，避免中文輸出亂碼。
 - 修改資料只能透過 `app/actions.py`；新增欄位要改 `app/models.py` 並跑測試。
 - LLM：只能透過 `app/llm/harness.py` 呼叫（OpenAI，設計見 `docs/llm-harness.md`）；改提示詞要升 `PROMPT_VERSION` 並跑 `tools/eval_extract.py`，猜測必須為 0。
-- 語音合成：`tools/gen_tts.py`（本機 Qwen3-TTS 環境在 `C:\Users\Ray\qwen3-tts\venv`）。
+- 語音合成：`python tools/collect_prompts.py` 收句子 → `python tools/gen_tts.py --engine openai --lang zh --missing` 補音檔（約 2 秒一句）。本機 Qwen3-TTS（`C:\Users\Ray\qwen3-tts\venv`，約 1 分鐘一句）留作備案。

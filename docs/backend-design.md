@@ -109,7 +109,7 @@ flowchart LR
 
 ## 7. 語音
 
-- **朗讀**：固定句子事先產生音檔（`tools/gen_tts.py`），後端只當靜態檔提供。本機引擎：Qwen3-TTS（國語）、Fun-CosyVoice3（閩南語，試驗中）；雲端可選 Qwen3 TTS API 或 Gemini TTS。
+- **朗讀**：固定句子事先產生音檔（`tools/gen_tts.py`），後端只當靜態檔提供。國語用 OpenAI TTS（`gpt-4o-mini-tts`，mp3，2026-11-07 起採用）；閩南語試驗用 Fun-CosyVoice3；本機 Qwen3-TTS 留作備案。服務台會變動的回答（例如「下一步」）畫面顯示完整文字，但唸固定句子，才有音檔。
 - **辨識**：在瀏覽器做，後端只收「判斷後的答案＋原文」，不收錄音檔。
 - 動態句子（例如念地號）之後才做：`POST /api/tts` 由後端呼叫 TTS 並快取，金鑰只在後端。
 

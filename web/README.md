@@ -51,9 +51,11 @@ python -m http.server 8000
 4. **C03 陷阱**：協助者畫面應該標出「另一筆土地有相同地號」與「看不清」。
 5. **正式版關卡**：欄位沒全部確認、公頃面積沒填時，同意書只能是「草稿」。
 
-### Qwen3 TTS 音檔
+### 語音音檔（OpenAI TTS）
 
-句子清單在 `audio/prompts.json`，用 `python tools/gen_tts.py` 產生（需要 `.env` 裡的 `DASHSCOPE_API_KEY`）。
+句子清單在 `audio/prompts.json`（`python tools/collect_prompts.py` 從程式收集），
+用 `python tools/gen_tts.py --engine openai --lang zh --missing` 產生 mp3（需要 `.env` 裡的 `OPENAI_API_KEY`，一句約 2 秒）。
+網頁依 `audio/manifest.json` 對照文字播放；找不到音檔才用瀏覽器內建語音。
 注意事項見 `docs/voice-design.md` 第 5 節。
 
 ### 限制

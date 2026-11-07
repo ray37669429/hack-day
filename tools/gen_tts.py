@@ -10,7 +10,9 @@
 
 用法：
     python tools/gen_tts.py --dry-run                 # 只列出句子
-    <本機環境的 python> tools/gen_tts.py --engine local --lang zh --missing   # 只補還沒有音檔的國語句子
+    python tools/gen_tts.py --engine openai --lang zh             # 國語全部用 OpenAI 產生（目前採用）
+    python tools/gen_tts.py --engine openai --lang zh --missing   # 只補還沒有音檔或句子改過的
+    <本機環境的 python> tools/gen_tts.py --engine local --lang zh --missing   # 備案：本機 Qwen3-TTS
     <本機環境的 python> tools/gen_tts.py --engine local --only q1   # 本機試一句
     <本機環境的 python> tools/gen_tts.py --engine local             # 本機產生全部國語
     python tools/gen_tts.py --engine api              # 雲端產生國語＋台語
@@ -125,6 +127,30 @@ class CosyVoiceEngine:
         sf.write(str(path), wav, self.model.sample_rate, subtype="PCM_16")  # 與國語音檔同格式，檔案小一半
 
 
+class OpenAIEngine:
+    """OpenAI 語音合成（用 .env 的 OPENAI_API_KEY）。很快（一句約 2 秒），只產生國語。只送固定語句。
+    存成 mp3（一句約 30 KB，wav 約 300 KB），手機載入快、git 不會變肥。"""
+    langs = ("zh",)
+    ext = "mp3"
+
+    def __init__(self) -> None:
+        from openai import OpenAI
+
+        if not os.getenv("OPENAI_API_KEY"):
+            raise RuntimeError("找不到 OPENAI_API_KEY，請放進 .env")
+        self.client = OpenAI()
+        self.model_id = os.getenv("OPENAI_TTS_MODEL", "gpt-4o-mini-tts")
+        self.voice = {"zh": os.getenv("OPENAI_TTS_VOICE", "coral")}
+        self.instruct = os.getenv("OPENAI_TTS_INSTRUCT",
+                                  "用台灣口音的國語，語氣溫和、清楚、稍慢，像在跟家裡的長輩說話。")
+
+    def synth(self, text: str, lang: str, path: Path) -> None:
+        with self.client.audio.speech.with_streaming_response.create(
+                model=self.model_id, voice=self.voice[lang], input=text, instructions=self.instruct,
+                response_format="mp3") as resp:
+            resp.stream_to_file(path)
+
+
 class ApiEngine:
     """阿里雲 qwen3-tts-flash（尚未用真實金鑰測試，第一次請先 --only q1）。"""
     langs = ("zh", "nan")
@@ -159,7 +185,7 @@ class ApiEngine:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--engine", choices=["local", "cosyvoice", "api"], default=os.getenv("QWEN_TTS_ENGINE", "local"))
+    ap.add_argument("--engine", choices=["local", "cosyvoice", "api", "openai"], default=os.getenv("QWEN_TTS_ENGINE", "local"))
     ap.add_argument("--lang", choices=["zh", "nan", "all"], default="all")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--only", help="只產生某個 id，例如 q1")
@@ -179,7 +205,7 @@ def main() -> int:
                     print(f"[{lang}] {p['id']}: {p[lang]}")
         return 0
 
-    engine = {"local": LocalEngine, "cosyvoice": CosyVoiceEngine, "api": ApiEngine}[args.engine]()
+    engine = {"local": LocalEngine, "cosyvoice": CosyVoiceEngine, "api": ApiEngine, "openai": OpenAIEngine}[args.engine]()
     langs = [l for l in wanted if l in engine.langs]
     skipped = [l for l in wanted if l not in engine.langs]
     if skipped:
@@ -194,7 +220,7 @@ def main() -> int:
         for lang in langs:
             if not p.get(lang):  # 台語還沒校對的句子留空，跳過
                 continue
-            rel = f"{lang}/{p['id']}.wav"
+            rel = f"{lang}/{p['id']}.{getattr(engine, 'ext', 'wav')}"
             if args.missing and not changed and entry["files"].get(lang) and (AUDIO / rel).exists():
                 continue
             (AUDIO / lang).mkdir(parents=True, exist_ok=True)
