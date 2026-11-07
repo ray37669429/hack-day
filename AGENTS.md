@@ -40,7 +40,7 @@
 
 ## MVP 範圍（已定，不再討論；詳見 `docs/farmer-ux-agents.md` 第 6 節）
 
-- 農民端：手機網頁，只做「拍照」與「確認 3 題」（可聽可講）。協助者端：Excel 核對表。
+- 農民端：手機網頁，只做「拍照」與「確認 3 題」（可聽可講）。協助者端：網頁核對（Excel 核對表不做）。
 - agent 只做收件、擷取、核對、分派、文件；不做提醒與通知。
 - 語音：朗讀用 **Qwen3 TTS** 事先產生的音檔（`tools/gen_tts.py`、`web/audio/`），找不到才用瀏覽器語音；國語語音回答 3 題。不做台語語音辨識。TTS 金鑰不能出現在前端。
 - 只用遮蔽樣本或虛構資料（假謄本在 `data/samples/fake-transcripts/`）。不做 LINE、登入、線上簽名。
@@ -52,14 +52,20 @@
 - `data/samples/` 只能放已遮蔽資料（姓名、身分證、電話、簽名改成代碼：農民 A、土地 A）。
 - 不要把真實姓名、身分證號寫進程式碼、測試、commit 訊息或 PR 說明。
 
-## 協作
+## 協作（單人開發）
 
-- 多人、多種 AI 工具同時開發。改動前先 `git pull`，只動與當前任務相關的檔案。
-- 每個功能一條分支 `feat/<名字>-<功能>`，透過 Pull Request 合回 `main`；`main` 要保持能跑。
-- 不要直接 push 到 `main`，不要 force push。
+- 一個人開發，可能同時開 Claude Code 和 Codex。**兩個 AI 不要改同一個檔案**，各自負責一組檔案。
+- 直接在 `main` 上小步提交；每次 commit 前先跑測試，`main` 要保持能跑。不要 force push。
+- 改動只限當前任務相關的檔案。
 - 金鑰只放 `.env`（照 `.env.example`），不要 commit。
 - commit 訊息用 `類型: 說明`，例如 `feat: Excel 帶入 Word`、`fix: 地號前導零消失`。
 
 ## 技術與指令
 
-- 技術棧：待決定（見白皮書討論題 3）。決定後在這裡補上安裝、執行、測試指令。
+- Python 3.10，專案環境在 `.venv`（不進 git）。後端 FastAPI，設計見 `docs/backend-design.md`。
+- 安裝：`py -3.10 -m venv .venv`，然後 `.venv\Scripts\python -m pip install -r requirements.txt`
+- 啟動：`.venv\Scripts\python -m uvicorn app.main:app --reload --port 8001`，測試台在 http://localhost:8001/
+- 測試：`.venv\Scripts\python -m pytest -q`（用假謄本跑完整流程）
+- Windows 請設 `PYTHONIOENCODING=utf-8`，避免中文輸出亂碼。
+- 修改資料只能透過 `app/actions.py`；新增欄位要改 `app/models.py` 並跑測試。
+- 語音合成：`tools/gen_tts.py`（本機 Qwen3-TTS 環境在 `C:\Users\Ray\qwen3-tts\venv`）。

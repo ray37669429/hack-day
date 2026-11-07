@@ -46,9 +46,12 @@ class Agreement:
     party_a: str = ""  # 甲方（所有權人）
     party_b: str = ""  # 乙方（耕作人）
     lines: list[Line] = field(default_factory=list)
+    force_draft: bool = False  # 例如農民回答「不是我的地」：格子都填了也只能是草稿
 
     @property
     def is_draft(self) -> bool:
+        if self.force_draft:
+            return True
         values = [self.party_a, self.party_b]
         for ln in self.lines:
             values += [ln.category, ln.location, ln.area_ha, ln.right_area_ha,

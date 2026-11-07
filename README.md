@@ -33,16 +33,19 @@
 5. 未確認的 Word 一律標「草稿」。
 6. 不自動送出正式系統。
 
-## 協作方式
+## 開發方式（單人）
 
 ```bash
 git clone https://github.com/ray37669429/hack-day.git
+py -3.10 -m venv .venv
+.venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python -m pytest -q
+.venv\Scripts\python -m uvicorn app.main:app --reload --port 8001
 ```
 
-1. `main` 永遠可以跑、可以 demo。
-2. 每人一條分支：`feat/<名字>-<功能>`，例如 `feat/ray-excel-to-word`。
-3. 小步 commit、常 push；合回 `main` 走 Pull Request。
-4. 金鑰只放 `.env`（照 `.env.example`），不要 commit。
+1. `main` 永遠可以跑、可以 demo；在 `main` 上小步 commit，commit 前先跑測試。
+2. 可以同時開 Claude Code 和 Codex，但兩個 AI 不要改同一個檔案。
+3. 金鑰只放 `.env`（照 `.env.example`），不要 commit。
 
 ## AI 工具（Codex / Claude Code 都可以）
 
@@ -57,7 +60,8 @@ git clone https://github.com/ray37669429/hack-day.git
 
 - 流程圖：[線上版](https://claude.ai/artifact/BJBLf1Ptn71F6ZGS3aysuA)（需分享權限）／原始檔 [docs/flow.html](docs/flow.html)
 - **前端測試台**：[web/prototype.html](web/prototype.html)（開啟方式見 [web/README.md](web/README.md)）
-- **3 小時開發計畫與分工**：[docs/3h-mvp-plan.md](docs/3h-mvp-plan.md)
+- **3 小時開發計畫（單人）**：[docs/3h-mvp-plan.md](docs/3h-mvp-plan.md)
+- **後端設計**：[docs/backend-design.md](docs/backend-design.md)
 - 語音設計（Qwen3 TTS）：[docs/voice-design.md](docs/voice-design.md)
 - 同意書版面與欄位規格：[docs/agreement-spec.md](docs/agreement-spec.md)（產生器：`python tools/make_agreement.py`）
 - 系統設計討論稿（參考 Palantir Ontology）：[docs/ontology-design.md](docs/ontology-design.md)
