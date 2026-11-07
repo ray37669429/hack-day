@@ -57,5 +57,6 @@ git clone https://github.com/ray37669429/hack-day.git
 
 - 流程圖：[線上版](https://claude.ai/artifact/BJBLf1Ptn71F6ZGS3aysuA)（需分享權限）／原始檔 [docs/flow.html](docs/flow.html)
 - 系統設計討論稿（參考 Palantir Ontology）：[docs/ontology-design.md](docs/ontology-design.md)
+- 高齡農民介面與背景 agent 討論稿：[docs/farmer-ux-agents.md](docs/farmer-ux-agents.md)
 - 待辦與時間表：[docs/TODO.md](docs/TODO.md)
 - 驗收記錄：[docs/acceptance-log.md](docs/acceptance-log.md)
