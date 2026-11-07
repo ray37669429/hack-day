@@ -104,7 +104,7 @@ body.sheet-open #app { padding-bottom: 260px; }
 .chk dt { flex: none; width: 3.4em; font-size: 18px; color: var(--fg2); }
 .chk dd { flex: 1; min-width: 0; margin: 0; font-size: 25px; line-height: 1.3; white-space: pre-line; word-break: keep-all; overflow-wrap: break-word; }
 .chk dd.nw { white-space: nowrap; }
-.chk .warn { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0 0; color: var(--wt); background: var(--wb); border-radius: 10px; padding: 6px 10px; font-size: 19px; }
+.chk .warn { display: flex; gap: 8px; align-items: flex-start; margin: 0 0 8px; color: var(--wt); background: var(--wb); border-radius: 10px; padding: 6px 10px; font-size: 19px; }
 .chk .warn svg { width: 22px; height: 22px; flex: none; margin-top: 3px; }
 .chk .photo { margin-top: 8px; min-height: 56px; font-size: 20px; }
 .answers { display: flex; flex-direction: column; gap: 10px; }
@@ -218,21 +218,10 @@ body.sheet-open #app { padding-bottom: 260px; }
 #dev b { font-weight: 400; width: 100%; }
 #dev select, #dev button { font: inherit; font-size: 15px; min-height: 40px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--fg); }
 
-/* 服務台：隨時可以按「問問題」，阿伯回答 */
-#askrow { display: flex; justify-content: flex-end; margin-bottom: 8px; }
-#askrow[hidden] { display: none; }
-#askrow .btn { width: auto; min-height: 56px; font-size: 20px; padding: 6px 18px; }
-#desk { position: fixed; inset: 0; z-index: 9; background: var(--bg); overflow-y: auto;
-  padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); }
-#desk[hidden] { display: none; }
-#desk .in { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
-#desk .h1 { font-size: 26px; }
-.log { display: flex; flex-direction: column; gap: 8px; }
-.log p { margin: 0; padding: 8px 12px; max-width: 85%; font-size: 19px; }
-.log .me { align-self: flex-end; background: var(--gl); color: var(--gt); border-radius: 16px 16px 4px 16px; }
-.log .bot { align-self: flex-start; background: #fff; border: 2px solid var(--line); border-radius: 16px 16px 16px 4px; color: var(--fg2); }
-.chips { display: flex; flex-direction: column; gap: 10px; }
-.chips .btn { font-size: 20px; justify-content: flex-start; }
+/* 問問題：同一顆麥克風，聽到的不是答案就當問題問阿伯（app/agents/faq.py） */
+.asking { display: flex; align-items: center; gap: 12px; justify-content: center; padding: 6px 0; }
+.asking .mic { width: 64px; height: 64px; }
+.asking .mic svg { width: 34px; height: 34px; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before { animation: none !important; transition: none !important; }
@@ -242,8 +231,7 @@ body.sheet-open #app { padding-bottom: 260px; }
 </style>
 </head>
 <body>
-<div id="app"><div id="askrow" hidden><button class="btn" data-act="deskOpen"></button></div><main id="main" aria-live="polite"></main><aside id="dev" hidden></aside></div>
-<div id="desk" role="dialog" aria-modal="true" aria-label="問問題" hidden></div>
+<div id="app"><main id="main" aria-live="polite"></main><aside id="dev" hidden></aside></div>
 <div id="sheet" role="status"><div class="in"></div></div>
 <div id="zoom" role="dialog" aria-modal="true" aria-label="謄本照片" hidden></div>
 <input type="file" id="cam" accept="image/*" capture="environment" hidden>
@@ -393,7 +381,7 @@ const st = {
   screen: "loading", view: null, page: 1, preview: null, checking: false, result: null,
   thumbs: {}, zoom: null,
   q: 0, mode: "wait", pending: null, fails: 0, note: "", heard: "",
-  sheet: null, flash: null, dir: "fwd", busy: false,
+  sheet: null, flash: null, dir: "fwd", busy: false, ask: null, askMode: "idle",
   docWait: 0, // 同意書還沒出來：0 還沒等、1 等一下再問一次、2 問過了
 };
 
@@ -459,6 +447,7 @@ function poll() {
 }
 
 function go(screen, dir = "fwd") {
+  if (screen !== st.screen) { st.ask = null; st.askMode = "idle"; }
   st.screen = screen;
   st.dir = dir;
   render();
@@ -503,7 +492,7 @@ function viewHtml() {
     case "intro": {
       const n = v.pages_expected;
       return `${steps(0)}
-        <div class="who">${mascot("happy")}${bubble("你好！", "點這裡聽我說")}</div>
+        <div class="who">${mascot("happy")}${say("你好！", "點這裡聽我說")}</div>
         <p class="h1 sm">我們要幫你準備<br>土地使用同意書</p>
         <div class="card"><h2>你要做的事</h2><ul class="list">
           <li>${ic("camera")}<span>拍土地謄本 ${n} 張</span></li>
@@ -511,7 +500,7 @@ function viewHtml() {
           <li>${ic("chat")}<span>回答幾個問題</span></li>
           <li>${ic("calendar")}<span>選要簽幾年</span></li>
           <li>${ic("clock")}<span>大約 10 分鐘</span></li></ul></div>
-        <div class="spacer"></div><div class="dock">${btn("begin", "right", "開始", "pri")}</div>`;
+        <div class="spacer"></div><div class="dock answers">${btn("begin", "right", "開始", "pri")}${askDock()}</div>`;
     }
     case "photo": return photoHtml();
     case "received":
@@ -519,13 +508,13 @@ function viewHtml() {
         <p class="h1">收到了</p>${thumbsHtml()}
         <p class="say">正在看你的謄本</p><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
         <p class="say">接下來不用做事。<br>好了會請你回答幾個問題。</p>
-        <p class="say" style="font-size:20px">手機可以先放著。</p></div><div class="spacer"></div>`;
+        <p class="say" style="font-size:20px">手機可以先放著。</p></div>${askBubble()}<div class="spacer"></div><div class="dock">${askDock()}</div>`;
     case "ready": {
       const qs = questions();
       const left = qs.filter((q) => !(q.id in st.view.answers)).length; // 重拍後只剩核對題要重答
       return `${steps(stepOfQ(qs[st.q]))}<div class="spacer"></div><div class="mid">${mascot("talk", "big-mascot")}
         <p class="h1">${left === qs.length ? `有 ${left} 個問題要問你` : `還有 ${left} 個問題`}</p>
-        <p class="say">可以用講的，也可以用按的。</p></div><div class="spacer"></div>${btn("start", "right", "開始回答", "pri")}`;
+        <p class="say">可以用講的，也可以用按的。</p></div>${askBubble()}<div class="spacer"></div><div class="dock answers">${btn("start", "right", "開始回答", "pri")}${askDock()}</div>`;
     }
     case "question": return questionHtml();
     case "retake": return retakeHtml();
@@ -533,7 +522,7 @@ function viewHtml() {
     case "human":
       return `<div class="spacer"></div><div class="mid">${mascot("calm", "big-mascot")}
         <p class="h1">系統處理不了這份謄本</p><p class="say">不用擔心。請重新拍一次，或找家人幫忙。</p></div>
-        <div class="spacer"></div>`;
+        ${askBubble()}<div class="spacer"></div><div class="dock">${askDock()}</div>`;
   }
   return "";
 }
@@ -571,7 +560,7 @@ function doneHtml() {
         <path d="M28 50l14 14 28-30" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <p class="h1">同意書做好了</p></div>`;
   const dl = docs.map((d, i) => `<a class="btn pri" href="${esc(d.url)}" download="${esc(d.name)}">${ic("download")}${docs.length > 1 ? `下載第 ${i + 1} 份` : "下載同意書"}</a>`).join("");
-  return `${steps(4)}${head}<div class="dl">${dl}</div>
+  return `${steps(4)}${head}<div class="dl">${dl}${askDock()}</div>${askBubble()}
     ${draft ? todoCard(todo) : ""}
     ${draft && Array.isArray(v.retake) && v.retake.length ? btn("goStep", "camera", "回去重拍有問題的那一張", "", 'data-i="0"') : ""}
     <div class="card"><h2>接下來</h2><ul class="list">
@@ -616,7 +605,7 @@ function photoHtml() {
   const v = st.view, n = v.pages_expected;
   const backBtn = !v.pages_done.length && !st.checking && !st.result ? btn("toIntro", "left", "", "back", 'aria-label="回上一步"') : "";
   const head = `${steps(0)}<div class="top">${backBtn}${bar((v.pages_done.length / n) * 100)}</div>
-    <div class="who">${mascot(st.result?.ok ? "happy" : "talk")}${bubble("請拍土地謄本", `第 ${st.page} 張，共 ${n} 張・點這裡聽`)}</div>`;
+    <div class="who">${mascot(st.result?.ok ? "happy" : "talk")}${say("請拍土地謄本", `第 ${st.page} 張，共 ${n} 張・點這裡聽`)}</div>`;
 
   if (st.checking) {
     return `${head}<div class="view"><img src="${esc(st.preview)}" alt="剛拍的照片"><div class="scan"></div></div>
@@ -634,7 +623,7 @@ function photoHtml() {
     <div class="tips"><div>${ic("sun")}亮一點</div><div>${ic("corners")}四個角都拍到</div><div>${ic("hand")}拿穩</div></div>
     <div class="view">${ic("doc")}<span>謄本第 ${st.page} 頁</span></div>
     ${v.pages_done.length ? `<p class="say">已經拍好：</p>${thumbsHtml()}` : ""}
-    <div class="spacer"></div>${st.sheet ? "" : `<div class="dock">${btn("shoot", "camera", "拍照", "pri")}</div>`}`;
+    <div class="spacer"></div>${st.sheet ? "" : `<div class="dock answers">${btn("shoot", "camera", "拍照", "pri")}${askDock()}</div>`}`;
 }
 
 function landHtml(l) {
@@ -657,7 +646,7 @@ function checkCardHtml(q) {
   }).join("");
   const warn = c.warn.map((w) => `<p class="warn">${ic("info")}<span>${esc(w)}</span></p>`).join("");
   const u = c.page != null ? photoOf(c.page) : "";
-  return `<div class="card chk"><dl>${rows}</dl>${warn}
+  return `<div class="card chk">${warn}<dl>${rows}</dl>
     ${u ? btn("zoom", "doc", `看謄本第 ${c.page} 張照片`, "photo soft", `data-src="${esc(u)}"`) : ""}</div>`;
 }
 
@@ -668,7 +657,7 @@ function questionHtml() {
   const listening = st.mode === "listen" || st.mode === "rbListen";
   const face = st.flash ? "happy" : listening ? "listen" : "talk";
   const top = `${steps(stepOfQ(q))}<div class="top">${btn("back", "left", "", "back", 'aria-label="回上一步"')}${bar((done / qs.length) * 100)}</div>
-    <div class="who">${mascot(face)}${bubble(q.text, `第 ${st.q + 1} 題，共 ${qs.length} 題・點這裡再聽一次`, q.legal ? "確認一下" : "")}</div>
+    <div class="who">${mascot(face)}${say(q.text, `第 ${st.q + 1} 題，共 ${qs.length} 題・點這裡再聽一次`, q.legal ? "確認一下" : "")}</div>
     ${q.why ? `<p class="why">${ic("info")}<span>${esc(q.why)}</span></p>` : ""}`;
   const lands = q.id === "q1" && v.lands.length ? `<div class="lands">${v.lands.map(landHtml).join("")}</div>` : checkCardHtml(q);
   const note = st.note ? `<div class="note">${esc(st.note)}</div>` : "";
@@ -689,7 +678,7 @@ function questionHtml() {
   const said = st.flash ? `<p class="say center pop">記好了：${esc(st.flash.label)}</p>` : "";
   return `${top}${lands}${heard}${note}<div class="spacer"></div>
     <div class="dock answers">${said}
-    ${V.canListen && !st.flash ? btn("listen", "mic", "按一下，用講的", "pri") : ""}
+    ${V.canListen && !st.flash ? `${btn("listen", "mic", "按一下，用講的", "pri")}<p class="small center" style="margin:0">不懂可以直接問阿伯</p>` : ""}
     <div class="${q.stack ? "stack" : q.grid ? "grid" : "row"}">${opts}</div>
     ${btn("ans", "help", q.unsure.label, `soft ${lit("unsure")}`, 'data-v="unsure"')}</div>`;
 }
@@ -714,11 +703,7 @@ function render() {
     main.classList.add(st.dir === "back" ? "bk" : "fwd");
     lastKey = key;
   }
-  main.inert = Boolean(st.sheet || st.zoom || desk.open);
-  const ask = $("#askrow");
-  ask.hidden = ["loading", "badlink"].includes(st.screen) || Boolean(st.zoom);
-  ask.firstElementChild.innerHTML = `${ic("mic")}問問題`;
-  ask.inert = Boolean(desk.open);
+  main.inert = Boolean(st.sheet || st.zoom);
   const dev = $("#dev");
   const showDev = IS_LOCAL && st.screen === "photo";
   dev.hidden = !showDev;
@@ -882,11 +867,23 @@ async function startListen() {
     return render();
   }
   const q = curQ();
+  const text = (r.alts[0] || "").trim();
+  const asking = !readback && r.alts.some((a) => QWORD.test(a));
+  if (asking) { // 像「為什麼要一樣？」：先當問題，免得被當成選「一樣」
+    const f = await askFaq(text);
+    if (st.mode !== "listen") return;
+    if (f && typeof f.answer === "string" && f.answer) return showFaq(text, f); // 疑問句不當成答案；答不出來就老實說
+  }
   for (const a of r.alts) {
     const v = readback ? V.match("yesno", a) : V.matchOption(q, a);
     if (v) return onHeard(v, a, readback);
   }
   if (readback) { st.mode = "readback"; return render(); }
+  if (!asking && text) {
+    const f = await askFaq(text);
+    if (st.mode !== "listen") return;
+    if (faqOk(f)) return showFaq(text, f);
+  }
   st.fails += 1;
   st.mode = "wait";
   st.heard = r.alts[0] || "";
@@ -947,97 +944,74 @@ async function submit(value, channel, transcript = "") {
   st.busy = false;
   if (st.flash !== flash) return; // 這一秒內已經按了回上一步或跳到別的步驟
   st.flash = null;
-  if (st.screen !== "question" || desk.open) return render();
+  if (st.screen !== "question") return render();
   ACT.next();
 }
 
-// ───── 服務台：按「問問題」用講的發問，阿伯從固定答案庫回答（app/agents/faq.py）
-const desk = { open: false, log: [], mode: "wait", note: "", sugg: null, busy: false };
-const DESK_HELLO = "有什麼不懂的，都可以問我。按綠色的按鈕，用講的問。";
-const DESK_SUGG = {
-  photo: ["這是要做什麼？", "怎麼拍比較清楚？", "我的資料安全嗎？"],
-  wait: ["還要多久？", "這是要做什麼？", "我的資料安全嗎？"],
-  answer: ["現在要做什麼？", "我不知道怎麼答", "按錯了怎麼辦？"],
-  done: ["怎麼簽名？", "什麼是草稿？", "這是要做什麼？"],
-};
-const deskPhase = () => (["intro", "photo"].includes(st.screen) ? "photo"
-  : ["received", "human"].includes(st.screen) ? "wait" : st.screen === "done" ? "done" : "answer");
-
-function deskHtml() {
-  const listening = desk.mode === "listen";
-  const bots = desk.log.filter((m) => m.who === "bot");
-  const last = bots.length ? bots[bots.length - 1].text : DESK_HELLO;
-  const face = listening ? "listen" : desk.busy ? "calm" : "talk";
-  const earlier = desk.log.slice(0, -1).slice(-4)
-    .map((m) => `<p class="${m.who === "me" ? "me" : "bot"}">${m.who === "me" ? "你問：" : "阿伯："}${esc(m.text)}</p>`).join("");
-  const sugg = (desk.sugg || DESK_SUGG[deskPhase()]).map((s) => btn("deskChip", "help", s, "", `data-q="${esc(s)}"`)).join("");
-  const action = listening
-    ? `<div class="mid"><div class="mic">${ic("mic")}</div><p class="h1">我在聽，請說你的問題</p></div>${btn("deskStop", "stop", "不講了", "soft")}`
-    : btn("deskListen", "mic", desk.busy ? "阿伯在想…" : "按一下，說你的問題", "pri", desk.busy ? "disabled" : "");
-  return `<div class="in">
-    <div class="who">${mascot(face)}<button class="bubble" data-act="deskRepeat"><span class="t" style="font-size:22px">${esc(last)}</span>
-      <span class="s">${ic("volume")}點這裡再聽一次</span></button></div>
-    ${earlier ? `<div class="log" aria-label="剛剛問的">${earlier}</div>` : ""}
-    ${desk.note ? `<div class="note">${esc(desk.note)}</div>` : ""}
-    ${action}
-    <p class="say" style="font-size:19px">也可以直接按下面的問題：</p>
-    <div class="chips">${sugg}</div>
-    ${btn("deskClose", "left", "回去繼續", "soft")}
-  </div>`;
-}
-function renderDesk() {
-  const d = $("#desk");
-  d.hidden = !desk.open;
-  d.innerHTML = desk.open ? deskHtml() : "";
-}
-function deskOpen() {
-  V.cancelListen(); V.stop();
-  if (st.mode === "listen" || st.mode === "rbListen") { st.mode = st.pending ? "readback" : "wait"; }
-  desk.open = true; desk.note = ""; desk.mode = "wait"; desk.sugg = null;
-  renderDesk(); render();
-  $("#desk .btn.pri")?.focus({ preventScroll: true });
-  V.speak(desk.log.length ? "請說你的問題。" : DESK_HELLO);
-}
-function deskClose() {
-  V.cancelListen(); V.stop();
-  desk.open = false; desk.mode = "wait";
-  renderDesk(); render();
-}
-async function deskAsk(text, channel) {
-  if (desk.busy) return;
-  desk.busy = true; desk.note = "";
-  desk.log.push({ who: "me", text });
-  renderDesk();
-  let r = null;
+// ───── 問問題：同一顆麥克風。答題時聽到的不是選項，就當問題問阿伯（固定答案庫）
+const QWORD = /嗎|什麼|甚麼|為什麼|為啥|怎麼|怎樣|哪|多久|幾點|誰|呢|是不是|可不可以|能不能/;
+const faqOk = (r) => r && typeof r.answer === "string" && r.answer && !["fallback", "not_heard"].includes(r.id);
+async function askFaq(text, channel = "voice") {
   try {
     const res = await fetch(`${API}/ask`, { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, channel }) });
-    if (res.ok) r = await res.json();
-  } catch { /* 下面處理 */ }
-  const answer = typeof r?.answer === "string" && r.answer ? r.answer : "現在沒辦法回答，請等一下再問一次。";
-  desk.log.push({ who: "bot", text: answer });
-  if (Array.isArray(r?.suggestions)) desk.sugg = r.suggestions.filter((s) => typeof s === "string").slice(0, 4);
-  desk.busy = false;
-  renderDesk();
-  V.speak(typeof r?.say === "string" && r.say ? r.say : answer);
+    return res.ok ? await res.json() : null;
+  } catch { return null; }
 }
-async function deskListen() {
-  desk.mode = "listen"; desk.note = "";
-  renderDesk();
+// 同一個阿伯對話框：有剛問的問題時，對話框顯示回答（點一下再聽），下面小字「你問：…」
+const say = (t, sub, tag = "") => (st.ask
+  ? `<button class="bubble" data-act="askRepeat"><span class="t" style="font-size:23px">${esc(st.ask.a)}</span>
+      ${st.ask.q ? `<span class="s">你問：${esc(st.ask.q)}</span>` : ""}</button>`
+  : bubble(t, sub, tag));
+// 只有大頭阿伯、沒有對話框的畫面（等一下、開始回答、下載…）：回答時才出現對話框
+const askBubble = () => (st.ask ? `<div class="who">${mascot("talk")}${say("", "")}</div>` : "");
+// 沒有題目的畫面（開頭、拍照、等一下、下載）用的麥克風：只回答問題
+function askDock() {
+  if (!V.canListen) return "";
+  if (st.askMode === "listen") {
+    return `<div class="asking"><div class="mic">${ic("mic")}</div><p class="say">我在聽，請說你的問題</p></div>
+      ${btn("askStop", "stop", "不講了", "soft")}`;
+  }
+  return btn("askListen", "mic", st.askMode === "busy" ? "阿伯在想…" : "有問題？按這裡用講的問", "soft", st.askMode === "busy" ? "disabled" : "");
+}
+async function askListen() {
+  V.cancelListen(); V.stop();
+  st.askMode = "listen"; st.ask = null;
+  render();
   const r = await V.listen();
-  if (desk.mode !== "listen") return; // 已經按「不講了」或關掉
-  desk.mode = "wait";
-  if (r.error) {
-    desk.note = r.error === "denied" ? "麥克風沒有打開。請按下面的問題。" : "這支手機不能用講的。請按下面的問題。";
-    return renderDesk();
+  if (st.askMode !== "listen") return;
+  const text = ((r.alts || [])[0] || "").trim();
+  if (r.error || !text) {
+    st.askMode = "idle";
+    st.ask = { q: "", a: r.error === "denied" ? "麥克風沒有打開，現在沒辦法用講的問。" : SAY.retry };
+    render();
+    return r.error ? undefined : V.speak(SAY.retry);
   }
-  const text = (r.alts || [])[0] || "";
-  if (!text.trim()) {
-    desk.note = "我沒聽清楚，可以再說一次，或按下面的問題。";
-    renderDesk();
-    return V.speak(desk.note);
-  }
-  deskAsk(text.trim(), "voice");
+  st.askMode = "busy"; render();
+  const f = await askFaq(text);
+  st.askMode = "idle";
+  const a = typeof f?.answer === "string" && f.answer ? f.answer : "現在沒辦法回答，請等一下再問一次。";
+  answerThen({ q: text, a }, typeof f?.say === "string" && f.say ? f.say : a);
+}
+// 答題時：問題的答案唸完，再唸一次目前的題目
+function showFaq(text, f) {
+  st.mode = "wait"; st.fails = 0; st.heard = ""; st.note = "";
+  answerThen({ q: text, a: f.answer }, f.say || f.answer);
+}
+// 阿伯在同一個對話框回答；唸完停一下，對話框回到原本的題目或說明，再唸一次
+function answerThen(ask, speech) {
+  st.ask = ask;
+  render();
+  const screen = st.screen, qid = curQ()?.id;
+  V.speak(speech).then(() => sleep(1500)).then(() => {
+    if (st.ask !== ask) return; // 已經又問了別的或換畫面
+    st.ask = null;
+    render();
+    if (st.screen !== screen) return;
+    if (screen === "question" && curQ()?.id === qid) sayQuestion();
+    else if (screen === "photo") V.speak(SAY.shoot(st.page));
+    else if (screen === "intro") V.speak(SAY.intro(st.view.pages_expected));
+  });
 }
 
 // ───── 回到某一步
@@ -1096,12 +1070,6 @@ function retakeHtml() {
 
 // ───── 按鈕
 const ACT = {
-  deskOpen: () => deskOpen(),
-  deskClose: () => deskClose(),
-  deskListen: () => deskListen(),
-  deskStop: () => { desk.mode = "wait"; V.cancelListen(); renderDesk(); },
-  deskChip: (el) => { V.cancelListen(); desk.mode = "wait"; deskAsk(el.dataset.q, "button"); },
-  deskRepeat: () => { const b = desk.log.filter((m) => m.who === "bot"); V.speak(b.length ? b[b.length - 1].text : DESK_HELLO); },
   reload: () => { st.docWait = 0; go("loading"); load(); },
   begin: () => { st.page = nextPage(); go("photo"); V.speak(SAY.shoot(st.page)); },
   toIntro: () => go("intro", "back"),
@@ -1126,6 +1094,7 @@ const ACT = {
   next: () => {
     hideSheet();
     const qs = questions();
+    st.ask = null;
     if (st.q < qs.length - 1) { st.q += 1; st.mode = "wait"; go("question"); sayQuestion(); }
     else {
       st.docWait = 0;
@@ -1136,11 +1105,14 @@ const ACT = {
   },
   redo: () => { hideSheet(); render(); sayQuestion(); },
   goStep: (el) => goStep(Number(el.dataset.i)),
+  askListen: () => askListen(),
+  askStop: () => { st.askMode = "idle"; V.cancelListen(); render(); },
+  askRepeat: () => { if (st.ask) V.speak(st.ask.a); },
   retakePage: (el) => retakePage(Number(el.dataset.p)),
   retakeCancel: () => { st.note = ""; route(); },
   back: () => {
     V.cancelListen(); V.stop();
-    st.mode = "wait"; st.pending = null; st.note = ""; st.heard = ""; st.flash = null; st.busy = false;
+    st.mode = "wait"; st.pending = null; st.note = ""; st.heard = ""; st.flash = null; st.busy = false; st.ask = null;
     if (st.q === 0) return go("ready", "back");
     st.q -= 1; go("question", "back"); sayQuestion();
   },
@@ -1152,7 +1124,7 @@ document.addEventListener("click", (e) => {
 document.addEventListener("change", (e) => { if (e.target.id === "devCase") devCase = e.target.value; });
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
-  if (desk.open) deskClose(); else if (st.zoom) closeZoom();
+  if (st.zoom) closeZoom();
 });
 window.addEventListener("hashchange", () => location.reload());
 
